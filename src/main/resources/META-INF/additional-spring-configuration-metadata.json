@@ -1,0 +1,72 @@
+{"properties": [
+  {
+    "name": "spring.datasource.jdbc-url",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.jdbc-url'"
+  },
+  {
+    "name": "jwt.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.secret'"
+  },
+  {
+    "name": "jwt.header",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.header'"
+  },
+  {
+    "name": "jwt.token-validity-in-seconds",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.token-validity-in-seconds'"
+  },
+  {
+    "name": "jwt.bearer",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.bearer'"
+  },
+  {
+    "name": "jwt.AccessToken_Seconds",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.AccessToken_Seconds'"
+  },
+  {
+    "name": "jwt.RefreshToken_Seconds",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.RefreshToken_Seconds'"
+  },
+  {
+    "name": "spring.datasource.hikari.url",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.hikari.url'"
+  },
+  {
+    "name": "jwt.AccessToken_MilliSeconds",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.AccessToken_MilliSeconds'"
+  },
+  {
+    "name": "jwt.RefreshToken_MilliSeconds",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.RefreshToken_MilliSeconds'"
+  },
+  {
+    "name": "spring.redis.pool.min-idle",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.redis.pool.min-idle'"
+  },
+  {
+    "name": "spring.redis.pool.max-idle",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.redis.pool.max-idle'"
+  },
+  {
+    "name": "spring.redis.pool.max-active",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.redis.pool.max-active'"
+  },
+  {
+    "name": "kakaomap.restapi_key",
+    "type": "java.lang.String",
+    "description": "A description for 'kakaomap.restapi_key'"
+  }
+]}

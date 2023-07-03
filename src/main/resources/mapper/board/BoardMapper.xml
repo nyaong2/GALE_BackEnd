@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.SideProject.GALE.mapper.board.BoardMapper">
+
+	<select id="GetUserPrivateList" parameterType="Map" resultType="com.SideProject.GALE.model.board.BoardDto">
+		SELECT
+		idx, category, accesstype, writer, regdate, locationname, locationaddress, content, average, likes, price, congestion, accessibility
+		FROM board
+		WHERE category = #{category} AND writer = #{writer} AND accesstype = 0 <!-- <![CDATA[ accesstype = 0]]> -->
+	</select>
+
+	<select id="GetPublicList" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardDto">
+		SELECT
+		idx, category, accesstype, writer, regdate, locationname, locationaddress, content, average, likes, price, congestion, accessibility
+		FROM board
+		WHERE category = #{category} AND accesstype = 1
+	</select>
+	
+	
+	<select id="GetIndex" parameterType="com.SideProject.GALE.model.board.BoardDto" resultType="Integer">
+		SELECT
+		idx
+		FROM board
+		WHERE category = #{category} AND writer = #{writer} AND regdate = #{regdate} AND locationname = #{locationname} AND locationaddress = #{locationaddress}
+		ORDER BY idx DESC
+		LIMIT 1
+	</select>
+	
+	<select id="GetIndex_Review" parameterType="com.SideProject.GALE.model.board.BoardReviewDto" resultType="Integer">
+		SELECT
+		idx
+		FROM board_review
+		WHERE board_category = #{board_category} AND board_idx = #{board_idx} AND writer = #{writer} 
+		AND regdate = #{regdate}
+		ORDER BY idx DESC
+		LIMIT 1
+	</select>
+	
+	<select id="GetLikePopularList" parameterType="int" resultType="Map">
+		SELECT idx, category, writer, regdate, locationname, locationaddress, content, likes
+		FROM board
+		ORDER BY likes DESC
+		LIMIT 20
+	</select>
+
+
+
+	<insert id="Write" parameterType="com.SideProject.GALE.model.board.BoardDto" useGeneratedKeys="true" keyProperty="idx">
+		INSERT INTO board (idx, category, writer, regdate, locationname, locationaddress,
+			longitude, latitue, content, grade, service, price, congestion, accessibility)
+			VALUES (
+			( SELECT IFNULL(MAX(idx)+1,MAX(idx))),
+			#{category}, #{writer}, #{regdate}, #{locationname}, #{locationaddress},
+			#{longitude}, #{latitue}, #{content}, #{grade}, #{service}, #{price}, #{congestion}, #{accessibility} )
+	</insert>		
+		
+	<select id="Read" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardDto">
+		SELECT
+		writer, regdate, locationname, locationaddress, content, average, likes, price, congestion, accessibility
+		FROM board
+		WHERE idx = #{idx}
+	</select>
+
+	
+	<update id="Update" parameterType="com.SideProject.GALE.model.board.BoardDto">
+		UPDATE board
+		SET category = #{category}, locationname = #{locationname}, locationaddress = #{locationaddress},
+					content = #{content}, likes = #{likes}, price = #{price}, congestion = #{congestion}, accessibility = #{accessibility}
+		WHERE idx=#{idx} AND writer=#{writer}
+	</update>
+	
+	
+	<delete id="Delete" parameterType="int">
+ 		DELETE FROM gale.board
+ 		WHERE idx = #{idx}
+ 	</delete>
+ 	
+ 	
+ 	<!--Review-->
+ 	<insert id="Write_Review" parameterType="com.SideProject.GALE.model.board.BoardReviewDto" useGeneratedKeys="true" keyProperty="idx">
+		INSERT INTO board_review (board_category, board_number, writer, regdate, content,
+			 grade, service, price, congestion, accessibility)
+			VALUES (
+			#{board_category}, #{board_number}, #{writer}, #{regdate}, 
+			#{content}, #{grade}, #{service}, #{price}, #{congestion}, #{accessibility} )
+	</insert>
+
+ 	
+ 	<delete id="Delete_Review" parameterType="hashMap">
+		DELETE FROM gale.board
+		WHERE idx = #{idx} AND writer = (
+			SELECT writer FROM board
+			WHERE idx = #{idx}
+			)
+	</delete>
+	
+	 <insert id="Like_Review" parameterType="hashMap">
+		REPLACE INTO board_review_like (board_review_idx, userid)
+		VALUES (#{board_review_idx}, #{userid})
+	</insert>
+
+
+</mapper>

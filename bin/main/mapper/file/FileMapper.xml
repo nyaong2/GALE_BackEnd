@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+
+<mapper namespace="com.SideProject.GALE.mapper.file.FileMapper">
+	<select id="GetBoardImagesMaxOrder" parameterType="com.SideProject.GALE.model.file.FileDto" resultType="Integer">
+		SELECT
+		MAX('order')
+		FROM files
+		WHERE board_idx = #{board_idx} AND board_category = #{board_category}
+	</select>
+
+
+	<select id="GetBoardReviewImagesMaxOrder" parameterType="Integer" resultType="Integer">
+		SELECT
+		MAX('order')
+		FROM files_review
+		WHERE board_review_idx = #{board_review_idx}
+	</select>
+
+		
+	<select id="Read" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardDto">
+		SELECT
+		writer, regdate, locationname, locationaddress, content, grade, service, price, congestion, accessibility
+		FROM board
+		WHERE idx = #{idx}
+	</select>
+	
+	<select id="Read_Review" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardReviewDto">
+		SELECT
+		board_category, board_idx, writer, regdate, content, grade, service, price, congestion, accessibility
+		FROM board
+		WHERE idx = #{idx}
+	</select>
+	
+	
+	<insert id="Save" parameterType="com.SideProject.GALE.model.file.FileDto">
+		INSERT INTO files (board_idx, board_category, origin_file_name, stored_file_name, `order`)
+		VALUE (
+		#{board_idx}, #{board_category}, #{origin_file_name}, #{stored_file_name}, #{order} )
+	</insert>
+
+	<insert id="Save_Review" parameterType="com.SideProject.GALE.model.file.FileReviewDto">
+		INSERT INTO files_review (board_review_idx, origin_file_name, stored_file_name, `order`)
+		VALUE (
+		#{board_review_idx}, #{origin_file_name}, #{stored_file_name}, #{order} )
+	</insert>
+		
+</mapper>
