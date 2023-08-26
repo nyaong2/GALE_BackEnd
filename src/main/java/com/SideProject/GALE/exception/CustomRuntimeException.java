@@ -1,33 +1,22 @@
 package com.SideProject.GALE.exception;
 
-import org.springframework.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.SideProject.GALE.enums.ResCode;
 
 import lombok.Getter;
 
+@SuppressWarnings("serial")
 @Getter
 public class CustomRuntimeException extends RuntimeException{
-	private HttpStatus httpStatus;
-	private String code;
+	private final ResCode resCode;
+	private final Logger logger = LoggerFactory.getLogger(CustomRuntimeException.class);
 	
-    public CustomRuntimeException() {
-        super();
-    }
-    
-    public CustomRuntimeException(String message) {
-        super(message);
+    public CustomRuntimeException(ResCode resCode) 
+    {
+        this.resCode = resCode;  
+        logger.warn(resCode.toString());
     }
 
-    public CustomRuntimeException(HttpStatus httpStatus, String code, String message) {
-        super(message);
-        this.httpStatus = httpStatus;
-        this.code = code;
-    }
-
-    public CustomRuntimeException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public CustomRuntimeException(Throwable cause) {
-        super(cause);
-    }
 }

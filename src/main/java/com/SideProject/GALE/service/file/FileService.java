@@ -1,39 +1,28 @@
 package com.SideProject.GALE.service.file;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
-import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.SideProject.GALE.controller.HttpStatusCode.ResponseStatusCodeMsg;
+import com.SideProject.GALE.components.io.utils.FileUtils;
+import com.SideProject.GALE.enums.ResCode;
 import com.SideProject.GALE.exception.CustomRuntimeException;
-import com.SideProject.GALE.exception.file.DenyFileExtensionException;
-import com.SideProject.GALE.exception.file.FileUploadDuplicateException;
-import com.SideProject.GALE.exception.file.FileUploadException;
+import com.SideProject.GALE.exception.CustomRuntimeException_Msg;
 import com.SideProject.GALE.mapper.file.FileMapper;
-import com.SideProject.GALE.model.board.BoardDto;
-import com.SideProject.GALE.model.board.BoardReviewDto;
 import com.SideProject.GALE.model.file.FileDto;
 import com.SideProject.GALE.model.file.FileReviewDto;
-import com.SideProject.GALE.util.FileUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,272 +35,181 @@ public class FileService {
 	private final FileMapper fileMapper;
 	
 	@Value("${spring.servlet.multipart.location}") //Value로 주입받는 매개변수는 그 자체로 final 값으로 간주함.
-	private String basicFolderLocation;
+	private String basicFolderLocation; // Path : [C:\GALE]
 	
-	private final String parentFolderName_Board = "board";
+	private final String parentFolderName_Board = "Board";
 	private final String parentFolderName_Board_Review = "Review";
 	
 	private final List<String> allowImageExtension = Arrays.asList(
 			"jpg", "jpeg", "png", "bmp");
 	
-	public boolean Save(MultipartFile multiPartFile) throws Exception
+	
+	@Transactional(propagation = Propagation.NESTED)
+	public void Upload_BoardImages(int board_Number, List<MultipartFile> imageFileList) // Board
 	{
-		String fileName = StringUtils.cleanPath(multiPartFile.getOriginalFilename());
-		String fileExtension = FilenameUtils.getExtension(fileName);
-		
-		// 1. 허용된 확장자가 없으면 throw
-		if (allowImageExtension.contains(fileExtension) == false) 
-			throw new CustomRuntimeException(HttpStatus.BAD_REQUEST, ResponseStatusCodeMsg.File.FAIL_DENYFILEEXTENSION, "[\"" + fileExtension + "\"] 확장자는 지원하지 않습니다.");
+		int image_Order = 1;
+		String exceptionSaveFolderPath = null;  // Exception 발생 시 폴더 생성 rollback을 위해 값 주기. [Exception에서 Try문안에 선언된 변수 접근 불가하기에 밖으로 빼서 설정 후 Exception 발생 시 이 폴더를 참조하여 그 폴더를 지울 수 있도록.]
+		List<FileDto> dbSaveListFileDto = new ArrayList<>(); // dbSaveListFileDto -> 추 후 for문이 끝나면, 이 리스트를 토대로 한번에 sql자체에서 for문으로 다 등록하도록. (sql 작업 최소화)
 
+			
+		// 1. 카테고리+idx 폴더 생성
+		File saveFolder = new File(String.format("%s\\%s\\%s", basicFolderLocation, parentFolderName_Board, board_Number)); // 파일 저장폴더위치 + 유형 + 카테고리 + 게시물 번호
+		exceptionSaveFolderPath = saveFolder.getPath(); // Exception 발생 시 폴더 생성 rollback을 위해 값 주기. [Exception에서 Try문안에 선언된 변수 접근 불가.]
 		
-		try {
-			multiPartFile.transferTo(Paths.get(basicFolderLocation + "\\" + fileName));
-		} catch (Exception e) {
-			System.out.println(e);
-			throw new FileUploadException( "['" + fileName + "'] 파일을 업로드 하지 못했습니다. 다시 시도 해주세요.");
-		}
-		
-		// 2. Get File Hash
-		String hashFileString = fileUtils.ExtractFileHashSHA256(basicFolderLocation + "\\"+ fileName);
-		
-		
-		Path oldPath = Paths.get(basicFolderLocation + "\\" + fileName);
-		Path hashPath = Paths.get(basicFolderLocation + "\\" + hashFileString + fileExtension);
-		
-		// 3. Duplication File Hash Check 
-		File file = new File(hashPath.toUri());
-		if(file.exists())
+		if (saveFolder.exists() == false)
+			saveFolder.mkdirs();
+		else
 		{
-			File tempFile = new File(oldPath.toUri());
-			tempFile.delete();
-			throw new FileUploadDuplicateException( "['" + fileName + "'] 파일은 이미 업로드 되어있습니다.");
+			this.Remove_BoardImagesFolder(board_Number);
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}
 		
-		// 4. Change Original Filename -> Hash Filename
-		Files.move( oldPath, hashPath);
-		
-		return true;
+		try { // 폴더 삭제를 위해 try 필요함.
+			for (MultipartFile multipartFile : imageFileList) 
+			{
+				String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());
+				String fileExtension = FilenameUtils.getExtension(fileName);
+				
+				// 2. 허용된 확장자가 없으면 throw
+				if (allowImageExtension.contains(fileExtension) == false) 
+					throw new CustomRuntimeException_Msg(ResCode.BAD_REQUEST_FILE_NOTALLOW_EXTENSION, String.format("[{}]은 지원하지 않는 확장자입니다.", fileName));
+
+
+				// 3. 이미지 로컬에 저장
+				multipartFile.transferTo(Paths.get(saveFolder.getPath() + "\\" + fileName)); //2번에서 설정한 폴더 path 위치 + 파일명
+
+
+				// 4. 파일 해쉬 저장
+				String hashFileName = fileUtils.ExtractFileHashSHA256(saveFolder.getPath() + "\\" + fileName);
+				hashFileName = hashFileName + "." + fileExtension; //암호화 + 파일확장자
+
+
+				// 5. 파일 이름 변경을 위한 path 생성
+				Path originalFilePath = Paths.get(saveFolder.getPath() + "\\" + fileName);
+				Path hashFilePath = Paths.get(saveFolder.getPath() + "\\" + hashFileName);
+
+				
+				// 6. 오리지날 이름 -> 해시파일 이름 변경
+				Files.move(originalFilePath,hashFilePath);
+				
+
+				// 7. 파일 DB 데이터 추가
+				FileDto fileDto = new FileDto();
+				fileDto.setBoard_number(board_Number);
+				fileDto.setOrigin_file_name(fileName);
+				fileDto.setStored_file_name(hashFileName);
+				fileDto.setOrder_number(image_Order);
+					
+				dbSaveListFileDto.add(fileDto);
+					
+				image_Order++; // 이미지 카운터 증가
+			}// foreach 문 End
+			
+			
+			// 8. DB Foreach로 모두 파일저장된 dto 등록
+			if(fileMapper.Upload_Board(dbSaveListFileDto) < dbSaveListFileDto.size()) // saveFileDto -> 추 후 for문이 끝나면, 이 리스트를 토대로 한번에 sql문으로 다 등록하도록. (sql 작업 최소화)
+				throw new Exception();
+			
+		} catch (CustomRuntimeException ex) {
+			this.Remove_BoardImagesFolder(board_Number);
+			throw ex;
+		}
+		catch (Exception ex) {
+			this.Remove_BoardImagesFolder(board_Number);
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
 	}
 	
 	
-	@Transactional(propagation = Propagation.NESTED)
-	public void ImageSave(int idx, int category, List<MultipartFile> listFile) // Board
-	{
-		Integer image_Order = null;
-		String saveFolderPath = null;  // Exception 발생 시 폴더 생성 rollback을 위해 값 주기. [Exception에서 Try문안에 선언된 변수 접근 불가.]
-		
-		// Dto Data Board [idx,category] 설정. 추 후에 이미지 DB 저장시 필요. (여기에 미리 선언한 이유는 0번 체크를 위해.)
-		FileDto fileDto = new FileDto();
-		fileDto.setBoard_idx(idx);
-		fileDto.setBoard_category(category);
-
-		// 0. 글쓰기가 완료된 게시물 idx를 통해 이미지DB의 순서 가져오기. null값이 나와야 함.
-		try 
-		{
-			image_Order = fileMapper.GetBoardImagesMaxOrder(fileDto);
-			if (image_Order != null)
-				throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error");
-		} catch (Exception ex) {
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error");
-		} finally {
-			image_Order = 1; // 파일 이미지 순서 1로 셋팅	
-		}	
 	
+	public boolean Remove_BoardImagesFolder(int board_number) 
+	{
+		String saveBoardPath = String.format("%s\\%s\\%s", basicFolderLocation, parentFolderName_Board, board_number);
+		return fileUtils.ForceFolderDelete(saveBoardPath);
+	}
+	
+	
+	
+	@Transactional(propagation = Propagation.NESTED)
+	public void Upload_ReivewImages(int board_Review_Number, List<MultipartFile> listFile)
+	{
+		// board_review_idx -> 리뷰게시판의 고유(PK) idx만 가지고 그 idx만 등록한 뒤 나중에 리뷰게시판의 사진 다운로드를 요청할 때 고유(PK) idx만 보내서 파일을 다운받을 수 있도록 할 것임.
+
+		int image_Order = 1;
+		ArrayList<FileReviewDto> dbSaveListFileDto = new ArrayList<>();// dbSaveListFileDto -> 추 후 for문이 끝나면, 이 리스트를 토대로 한번에 sql자체에서 for문으로 다 등록하도록. (sql 작업 최소화)
+
 		
-		try {
+		// 1. 카테고리+idx 폴더 생성
+		File saveFolder = new File(String.format("%s\\%s\\%s", basicFolderLocation, parentFolderName_Board_Review, board_Review_Number)); // 파일 저장폴더위치 + 유형 + Board_Review PK idx
+
+		if (saveFolder.exists() == false)
+			saveFolder.mkdirs();
+		else
+		{
+			this.Remove_BoardReviewImagesFolder(board_Review_Number);
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+		
+		
+		try 
+		{ // 폴더 삭제를 위해 try 필요함.
 			for (MultipartFile multipartFile : listFile) 
 			{
 				String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());
 				String fileExtension = FilenameUtils.getExtension(fileName);
 
-				if (multipartFile.getSize() < 1 || StringUtils.hasText(fileName) == false ) // 1. request key는 보냈지만, 실질적으로 데이터를 보내지 않은 경우 [사이즈가 1보다 작거나 파일명이 없음.]
-					throw new CustomRuntimeException(HttpStatus.BAD_REQUEST, ResponseStatusCodeMsg.File.FAIL_NOTFOUND, "이미지가 전송되지 않았거나 잘못된 요청입니다.");
-				if (allowImageExtension.contains(fileExtension) == false) // 1-1. 허용된 확장자가 없으면 throw
-					throw new CustomRuntimeException(HttpStatus.BAD_REQUEST, ResponseStatusCodeMsg.File.FAIL_DENYFILEEXTENSION, "[\"" + fileExtension + "\"] 확장자는 지원하지 않습니다.");
+				// 2. 허용된 확장자가 없으면 throw
+				if (allowImageExtension.contains(fileExtension) == false) 
+					throw new CustomRuntimeException_Msg(ResCode.BAD_REQUEST_FILE_NOTALLOW_EXTENSION, String.format("[{}]은 지원하지 않는 확장자입니다.", fileName));
 				
-				// 2. 카테고리+idx 폴더 생성
-				File saveFolder = new File(basicFolderLocation + "\\" + parentFolderName_Board + "\\"+ category + "\\" + idx);
-				saveFolderPath = saveFolder.getPath(); // Exception 발생 시 폴더 생성 rollback을 위해 값 주기. [Exception에서 Try문안에 선언된 변수 접근 불가.]
-				if (saveFolder.exists() == false)
-					saveFolder.mkdirs();
 
-				try {
-					// 3. 이미지 로컬에 저장
-					multipartFile.transferTo(Paths.get(saveFolderPath + "\\" + fileName));
-				} catch (Exception e) {
-					throw new FileUploadException("['" + fileName + "'] 파일을 업로드 하지 못했습니다. 다시 시도 해주세요.");
-				}
+				// 3. 이미지 로컬에 저장
+				multipartFile.transferTo(Paths.get(saveFolder.getPath() + "\\" + fileName)); //2번에서 설정한 폴더 path 위치 + 파일명
+
 
 				// 4. 파일 해쉬 저장
-				String hashFileString = null;
-				try {
-					hashFileString = fileUtils.ExtractFileHashSHA256(saveFolder.getPath() + "\\" + fileName);
-				} catch (Exception ex) {
-					throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - File");
-				}
+				String hashFileName =  fileUtils.ExtractFileHashSHA256(saveFolder.getPath() + "\\" + fileName);
+				hashFileName = hashFileName + "." + fileExtension; //암호화 + 파일확장자
+
 
 				// 5. 파일 이름 변경을 위한 path 생성
-				Path originalFilePath = Paths.get(saveFolderPath + "\\" + fileName);
-				Path hashFilePath = Paths.get(saveFolderPath + "\\" + hashFileString + "." + fileExtension);
+				Path originalFilePath = Paths.get(saveFolder.getPath() + "\\" + fileName);
+				Path hashFilePath = Paths.get(saveFolder.getPath() + "\\" + hashFileName);
 
-				// 6. 예기치않은 문제로 이미 저장된 해쉬파일이 있는지 확인
-				try {
-					File file = new File(hashFilePath.toUri());
-					if (file.exists()) 
-					{
-						File tempOldFile = new File(originalFilePath.toUri());
-						tempOldFile.delete();
-						throw new CustomRuntimeException(HttpStatus.CONFLICT, ResponseStatusCodeMsg.File.FAIL_DUPLICATEFILE, "['" + fileName + "'] 파일은 이미 업로드 되어있습니다.");
-					}
-				} catch (CustomRuntimeException ex) {
-					throw ex;
-				}catch (Exception ex) {
-					throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - File");
-				}
+				// 6. 오리지날 이름 -> 해시파일 이름 변경
+				Files.move(originalFilePath,hashFilePath);
 
-				// 7. 오리지날 이름 -> 해시파일 이름 변경
-				try {
-					Files.move(originalFilePath,hashFilePath);
-				} catch (IOException e) {
-					throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - File");
-				}
 
-				
-				// 8. 파일 DB 저장
-				try 
-				{
-					fileDto.setOrigin_file_name(fileName);
-					fileDto.setStored_file_name(hashFileString);
-					fileDto.setOrder(image_Order);
-					
-					Integer saveResult = fileMapper.Save(fileDto);
-					if (saveResult == null) // [Fail == Save Failed]
-						throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
+				// 7. 파일 DB 데이터 추가
+				FileReviewDto fileReviewDto = new FileReviewDto();
+				fileReviewDto.setBoard_review_number(board_Review_Number);
+				fileReviewDto.setOrigin_file_name(fileName);
+				fileReviewDto.setStored_file_name(hashFileName); // 암호화명 + 확장자명
+				fileReviewDto.setOrder_number(image_Order);
 
-					image_Order++; // 이미지 카운터 증가
-				} catch (CustomRuntimeException ex) {
-					throw ex;
-				} catch (Exception ex) {
-					throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
-				}
-			}
+				dbSaveListFileDto.add(fileReviewDto);
+
+				image_Order++; // 이미지 카운터 증가
+
+			} //foreach문 End
+			
+			// 8. DB Foreach로 모두 파일저장된 dto 등록
+			if(fileMapper.Upload_Board_Review(dbSaveListFileDto) < dbSaveListFileDto.size()) // saveFileDto -> 추 후 for문이 끝나면, 이 리스트를 토대로 한번에 sql문으로 다 등록하도록. (sql 작업 최소화)
+				throw new Exception();
+
 		} catch (CustomRuntimeException ex) {
-			fileUtils.ForceFolderDelete(saveFolderPath);
+			this.Remove_BoardReviewImagesFolder(board_Review_Number);
 			throw ex;
-		}
-		catch (Exception ex) {
-			fileUtils.ForceFolderDelete(saveFolderPath);
-			throw ex;
+		} catch (Exception ex) {
+			this.Remove_BoardReviewImagesFolder(board_Review_Number);
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}
 	}
 	
-	
-	@Transactional(propagation = Propagation.NESTED)
-	public void ImageSave(int reviewIdx, List<MultipartFile> listFile) //Review
+	public boolean Remove_BoardReviewImagesFolder(int board_review_number) 
 	{
-		Integer image_Order = null;
-		String saveFolderPath = null;  // Exception 발생 시 폴더 생성 rollback을 위해 값 주기. [Exception에서 Try문안에 선언된 변수 접근 불가.]
-		
-		// 0. 글쓰기가 완료된 게시물 idx를 통해 이미지DB의 순서 가져오기. null값이 나와야 함.
-		try 
-		{
-			image_Order = fileMapper.GetBoardReviewImagesMaxOrder(reviewIdx);
-			if (image_Order != null)
-				throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error");
-		} catch (Exception ex) {
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error");
-		} finally {
-			image_Order = 1; // 파일 이미지 순서 1로 셋팅	
-		}	
-	
-		
-		try {
-			for (MultipartFile multipartFile : listFile) 
-			{
-				String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());
-				String fileExtension = FilenameUtils.getExtension(fileName);
-
-				if (multipartFile.getSize() < 1 || StringUtils.hasText(fileName) == false ) // 1. request key는 보냈지만, 실질적으로 데이터를 보내지 않은 경우 [사이즈가 1보다 작거나 파일명이 없음.]
-					throw new CustomRuntimeException(HttpStatus.BAD_REQUEST, ResponseStatusCodeMsg.File.FAIL_NOTFOUND, "이미지가 전송되지 않았거나 잘못된 요청입니다.");
-				if (allowImageExtension.contains(fileExtension) == false) // 1-1. 허용된 확장자가 없으면 throw
-					throw new CustomRuntimeException(HttpStatus.BAD_REQUEST, ResponseStatusCodeMsg.File.FAIL_DENYFILEEXTENSION, "[\"" + fileExtension + "\"] 확장자는 지원하지 않습니다.");
-				
-				// 2. 카테고리+idx 폴더 생성 [여기서는 category를 안 쓴 이유는 Review안에 Foregin Key로 board category,idx를 각각 지정했기 때문에 리뷰 고유값인 idx만 가지고 폴더 생성]
-				File saveFolder = new File(basicFolderLocation + "\\" + parentFolderName_Board_Review + "\\"+ reviewIdx); 
-				saveFolderPath = saveFolder.getPath(); // Exception 발생 시 폴더 생성 rollback을 위해 값 주기. [Exception에서 Try문안에 선언된 변수 접근 불가.]
-				if (saveFolder.exists() == false)
-					saveFolder.mkdirs();
-
-				try {
-					// 3. 이미지 로컬에 저장
-					multipartFile.transferTo(Paths.get(saveFolderPath + "\\" + fileName));
-				} catch (Exception e) {
-					throw new FileUploadException("['" + fileName + "'] 파일을 업로드 하지 못했습니다. 다시 시도 해주세요.");
-				}
-
-				// 4. 파일 해쉬 저장
-				String hashFileString = null;
-				try {
-					hashFileString = fileUtils.ExtractFileHashSHA256(saveFolder.getPath() + "\\" + fileName);
-				} catch (Exception ex) {
-					throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - File");
-				}
-
-				// 5. 파일 이름 변경을 위한 path 생성
-				Path originalFilePath = Paths.get(saveFolderPath + "\\" + fileName);
-				Path hashFilePath = Paths.get(saveFolderPath + "\\" + hashFileString + "." + fileExtension);
-
-				// 6. 예기치않은 문제로 이미 저장된 해쉬파일이 있는지 확인
-				try {
-					File file = new File(hashFilePath.toUri());
-					if (file.exists()) 
-					{
-						File tempOldFile = new File(originalFilePath.toUri());
-						tempOldFile.delete();
-						throw new CustomRuntimeException(HttpStatus.CONFLICT, ResponseStatusCodeMsg.File.FAIL_DUPLICATEFILE, "['" + fileName + "'] 파일은 이미 업로드 되어있습니다.");
-					}
-				} catch (CustomRuntimeException ex) {
-					throw ex;
-				}catch (Exception ex) {
-					throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - File");
-				}
-
-				// 7. 오리지날 이름 -> 해시파일 이름 변경
-				try {
-					Files.move(originalFilePath,hashFilePath);
-				} catch (IOException e) {
-					throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - File");
-				}
-
-				
-				// 8. 파일 DB 저장
-				try 
-				{
-					FileReviewDto fileReviewDto = new FileReviewDto();
-					fileReviewDto.setBoard_review_idx(reviewIdx);
-					fileReviewDto.setOrigin_file_name(fileName);
-					fileReviewDto.setStored_file_name(hashFileString);
-					fileReviewDto.setOrder(image_Order);
-					
-					Integer saveResult = fileMapper.Save_Review(fileReviewDto);
-					if (saveResult == null) // [Fail == Save Failed]
-						throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
-
-					image_Order++; // 이미지 카운터 증가
-				} catch (CustomRuntimeException ex) {
-					throw ex;
-				} catch (Exception ex) {
-					throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
-				}
-			}
-		} catch (CustomRuntimeException ex) {
-			fileUtils.ForceFolderDelete(saveFolderPath);
-			throw ex;
-		}
-		catch (Exception ex) {
-			fileUtils.ForceFolderDelete(saveFolderPath);
-			throw ex;
-		}
+		String saveBoardReviewPath = String.format("%s\\%s\\%s", basicFolderLocation, parentFolderName_Board_Review, board_review_number);
+		return fileUtils.ForceFolderDelete(saveBoardReviewPath);
 	}
 	
 //	public boolean SaveProfile(MultipartFile profile) throws Exception
@@ -344,7 +242,7 @@ public class FileService {
 //		
 //		
 //		Path oldPath = Paths.get(saveFolderLocation + "\\" + fileName);
-//		Path hashPath = Paths.get(saveFolderLocation + "\\" + hashFileString + fileExtension);
+//		Path hashPath = Paths.get(saveFolderLocation + "\\" + hashFileName + fileExtension);
 //		
 //		File file = new File(hashPath.toUri());
 //		if(file.exists())
@@ -390,7 +288,7 @@ public class FileService {
 //		
 //		
 //		Path oldPath = Paths.get(saveFolderLocation + "\\" + fileName);
-//		Path hashPath = Paths.get(saveFolderLocation + "\\" + hashFileString + fileExtension);
+//		Path hashPath = Paths.get(saveFolderLocation + "\\" + hashFileName + fileExtension);
 //		
 //		File file = new File(hashPath.toUri());
 //		if(file.exists())
@@ -404,32 +302,75 @@ public class FileService {
 //		
 //		return true;
 //	}
-	
-	
-	
-	public byte[] Download(String fileName)
-	{
-		byte[] fileByte = null;
-		String srcFileName = null;
 		
+	@SuppressWarnings("unused")
+	public File Download_BoardImage(int board_Number, int order_Number)
+	{		
+		File storedFile = null;
 		try {
-			srcFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
+			// 1. 정보 가져오기
+			FileDto dbQueryDto = new FileDto();
+			dbQueryDto.setBoard_number(board_Number);
+			dbQueryDto.setOrder_number(order_Number);
+			dbQueryDto = fileMapper.Download_Board_ImageData(dbQueryDto);
 			
-			File file = new File("c:\\GALE\\File\\" +srcFileName);
-			
-			if(!file.exists())
-				throw new FileUploadDuplicateException();
-			
-			fileByte = FileCopyUtils.copyToByteArray(file);
-		} catch (FileUploadDuplicateException ex) {
-			fileByte = null;
+			if(dbQueryDto == null)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARD);
+			if(StringUtils.hasText(dbQueryDto.getStored_file_name()) == false)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARD);
+		
+			String saveFilePath = String.format("%s\\%s\\%s\\%s", // 파일 저장폴더위치 + 유형 +  (PK) Number + Stored FileName
+					basicFolderLocation, parentFolderName_Board,  dbQueryDto.getBoard_number(), dbQueryDto.getStored_file_name()); 
 
+			// 2. 파일 가져오기
+			storedFile = new File(saveFilePath);
+			
+			if(storedFile == null)
+				throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+			
+		}  catch (CustomRuntimeException ex) {
+			throw ex;
 		} catch (Exception ex) {
-			fileByte = null;
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}
 		
-		return fileByte;
-		
+		return storedFile;
 	}
 	
+	
+	@SuppressWarnings("unused")
+	public File Download_BoardReviewImage(int board_Review_Number, int order_Number)
+	{		
+		File storedFile = null;
+		
+		try 
+		{
+			// 1. 정보 가져오기
+			FileReviewDto dbQueryDto = new FileReviewDto();
+			dbQueryDto.setBoard_review_number(board_Review_Number);
+			dbQueryDto.setOrder_number(order_Number);
+			dbQueryDto = fileMapper.Download_Board_Review_ImageData(dbQueryDto);
+			
+			if(dbQueryDto == null)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARDREVIEW);
+			if(StringUtils.hasText(dbQueryDto.getStored_file_name()) == false)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARDREVIEW);
+			
+			String saveFilePath = String.format("%s\\%s\\%s\\%s", // 파일 저장폴더위치 + 유형 + Category +  (PK) Number + Stored FileName
+					basicFolderLocation, parentFolderName_Board_Review, dbQueryDto.getBoard_review_number(), dbQueryDto.getStored_file_name()); 
+
+			// 2. 파일 가져오기
+			storedFile = new File(saveFilePath);
+			
+			if(storedFile.exists() == false)
+				throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+
+		} catch (CustomRuntimeException ex) {
+			throw ex;
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+		
+		return storedFile;
+	}
 }
