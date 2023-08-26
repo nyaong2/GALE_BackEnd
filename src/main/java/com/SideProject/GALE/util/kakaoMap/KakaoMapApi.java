@@ -7,7 +7,6 @@ import java.net.URLEncoder;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,7 +19,7 @@ public class KakaoMapApi {
 	private static final String BASE_URL = "https://dapi.kakao.com/v2/local/search/category.json?category\\\\_group\\\\_code=";
 	
 	//@Value("${kakaomap.restapi_key}")
-	private String RESTAPI_KEY = "2baf55e9d9fa1ee11a26878f7b8f6240";
+	//private String RESTAPI_KEY = "2baf55e9d9fa1ee11a26878f7b8f6240";
 	
 	private String apiKey = "KakaoAK 2baf55e9d9fa1ee11a26878f7b8f6240";
 	
@@ -32,7 +31,7 @@ public class KakaoMapApi {
 		
 		HttpEntity<String> entity = new HttpEntity<String>("parameters",headers);
 		try {
-		String encode = URLEncoder.encode("AT4", "UTF-8"); 
+		//String encode = URLEncoder.encode("AT4", "UTF-8"); 
         String rawURI = UriComponentsBuilder.fromHttpUrl(BASE_URL)
                 .queryParam("category_group_code", "AT4")
                 .queryParam("X", "33.4506287088949")
@@ -47,7 +46,7 @@ public class KakaoMapApi {
 		JSONParser jsonParser = new JSONParser(); 
 		JSONObject body = (JSONObject) jsonParser.parse(res.getBody().toString()); 
 		JSONArray docu = (JSONArray) body.get("documents"); 
-		JSONArray address = (JSONArray) body.get("address"); 
+		//JSONArray address = (JSONArray) body.get("address"); 
 		
 		System.out.println(docu.toString());
 		
@@ -74,7 +73,7 @@ public class KakaoMapApi {
 		JSONParser jsonParser = new JSONParser(); 
 		JSONObject body = (JSONObject) jsonParser.parse(res.getBody().toString()); 
 		JSONArray docu = (JSONArray) body.get("documents"); 
-		JSONArray address = (JSONArray) body.get("address"); 
+		//JSONArray address = (JSONArray) body.get("address"); 
 		
 		System.out.println(docu.toString());
 		

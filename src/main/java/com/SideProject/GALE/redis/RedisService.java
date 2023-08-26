@@ -1,14 +1,11 @@
 package com.SideProject.GALE.redis;
 
 import java.time.Duration;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
-import com.SideProject.GALE.util.TimeUtils;
+import com.SideProject.GALE.components.io.utils.TimeUtils;
 
 import lombok.RequiredArgsConstructor;
 

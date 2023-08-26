@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        
+<mapper namespace="com.SideProject.GALE.mapper.user.UserMapper">
+	<select id="findUserByUserid" resultType="com.SideProject.GALE.model.user.UserDto">
+ 		Select userid, password, role
+ 		FROM user
+ 		WHERE userid = #{userid}
+ 	</select>
+ 	
+	<insert id="join" parameterType="com.SideProject.GALE.model.user.UserDto">
+ 		INSERT INTO user (userid, password, nickname, role)
+ 		VALUE ( #{userid}, #{password}, #{nickname}, #{role} )
+ 	</insert>
+ 	
+ 	<select id="findNickname" parameterType="String" resultType="Integer">
+ 		SELECT COUNT(*) FROM user
+ 		WHERE nickname = #{nickname}
+ 	</select>
+ 	
+ 	<select id="getUserAuthority" parameterType="String" resultType="String">
+ 		SELECT name FROM role WHERE id = 
+		(SELECT role FROM user WHERE email LIKE #{email})
+		ORDER BY NAME
+ 	</select>
+ 	
+	<update id="ProfileUpdate" parameterType="com.SideProject.GALE.model.user.UserProfileRequestDto">
+		UPDATE user
+		SET nickname = #{nickname}, password = #{encryptedPassword}
+		WHERE userid=#{userid}
+	</update>
+ 	
+</mapper>

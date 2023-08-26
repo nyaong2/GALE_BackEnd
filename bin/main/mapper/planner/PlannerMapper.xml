@@ -6,41 +6,69 @@
 
 
 <mapper namespace="com.SideProject.GALE.mapper.planner.PlannerMapper">
-	<select id="GetPlannerIdx" parameterType="com.SideProject.GALE.model.planner.PlannerDto" resultType="Integer">
-		SELECT idx
-		FROM planner
-		WHERE title = #{title} AND email = #{email} AND date_start = #{date_start} 
-		AND date_end = #{date_end} AND regdate = #{regdate}
-		ORDER BY idx DESC
-		LIMIT 1
+
+	<select id="GetAllPlannerList" parameterType="String" resultType="com.SideProject.GALE.model.planner.GetAllListPlannerDto">
+		SELECT p.*, pd.board_number,
+    	(br.satisfaction + br.service + br.price + br.congestion + br.accessibility) / 5 AS average
+		FROM planner p
+		LEFT JOIN planner_details pd ON pd.planner_number = p.planner_number
+		LEFT OUTER JOIN (
+    		SELECT board_number,
+        	AVG(satisfaction) AS satisfaction,
+        	AVG(service) AS service,
+        	AVG(price) AS price,
+       		AVG(congestion) AS congestion,
+        	AVG(accessibility) AS accessibility
+    	FROM board_review
+    	GROUP BY board_number
+		) br ON pd.board_number = br.board_number
+		WHERE p.userid = #{userid}
+		AND pd.order_number = 1;
 	</select>
 	
-	<select id="GetPlanner" parameterType="int" resultType= "com.SideProject.GALE.model.planner.PlannerDto">
-		Select *
-		FROM planner
-		WHERE idx = #{idx}
-	</select>
 
-
-	<insert id="Write" parameterType="com.SideProject.GALE.model.planner.PlannerDto">
+	<insert id="Write" parameterType="com.SideProject.GALE.model.planner.PlannerDto" useGeneratedKeys="true" keyProperty="planner_number">
+		<selectKey resultType="Integer" keyProperty="planner_number" order="BEFORE">
+			SELECT IFNULL( MAX(planner_number)+1, 1 ) FROM planner
+		</selectKey>
 		INSERT INTO planner
-		(email, title, date_start, date_end)
-		VALUES
-		#{email}, #{title}, #{date_start}, #{date_end}
+		(planner_number, userid, title, date_start, date_end, regdate)
+		VALUES (
+		#{planner_number}, #{userid}, #{title}, #{date_start}, #{date_end}, #{regdate})
 	</insert>
 	
-	<insert id="WriteDetails" parameterType="java.util.List">
+	
+	<insert id="Write_Details" parameterType="com.SideProject.GALE.model.planner.PlannerDetailDto">
 		INSERT INTO planner_details
-		(planner_idx, select_category, select_idx, startdate, order)
+		(planner_number, board_number, startdate, order_number)
 		VALUES
-		<foreach item="item" collection="list" separator=",">
-			(#{item.planner_idx}, #{item.select_category}, #{item.select_idx}, #{item.startdate}, #{item.order})
+		<foreach item="item" collection="list" separator=","  index="index">
+			( #{item.planner_number}, #{item.board_number}, 
+			#{item.startdate}, 1 + #{index} )
 		</foreach>
 	</insert>
 	
+	<select id="Read" parameterType="int" resultType="com.SideProject.GALE.model.planner.PlannerReadDetailsDto">
+		SELECT 
+		pd.planner_number, pd.board_number, pd.startdate, pd.order_number,
+		b.longitude, b.latitue
+		FROM planner_details pd
+		JOIN board b ON  b.board_number = pd.board_number
+		WHERE pd.planner_number = #{planner_number}
+	</select>
+	
+	<select id="GetUserId" parameterType="int" resultType="String">
+		Select userid
+		FROM planner
+		WHERE planner_number = #{planner_number}
+	</select>
+
+	
 	<delete id="Delete" parameterType="int">
-		DELETE FROM planner
-		WHERE idx = #{idx}
+		DELETE planner, planner_details
+		FROM planner
+		LEFT JOIN planner_details ON planner.planner_number = planner_details.planner_number
+		WHERE planner.planner_number = #{planner_number}
 	</delete>
 	
 </mapper>

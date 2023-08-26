@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Primary;
 import com.zaxxer.hikari.HikariDataSource;
 
 @Configuration(proxyBeanMethods = false) // 스프링 loc 컨테이너에 지금 이 파일이 환경셜정과 관련된 파일이라는 것을 인식
+//proxyBeanMethods = 클래스에서 반환하는 객체는 항상 새로운 인스턴스가 됨.
 public class HikariConfig {
 	//https://powernote.tistory.com/42
 	

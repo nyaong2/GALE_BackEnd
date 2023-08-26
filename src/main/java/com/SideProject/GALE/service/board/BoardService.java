@@ -1,194 +1,274 @@
-																																																																																																																																																																																																																																																																																																																																																																						package com.SideProject.GALE.service.board;
+package com.SideProject.GALE.service.board;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-import org.json.JSONObject;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
-import com.SideProject.GALE.controller.HttpStatusCode.ResponseStatusCodeMsg;
+import com.SideProject.GALE.enums.ResCode;
 import com.SideProject.GALE.exception.CustomRuntimeException;
 import com.SideProject.GALE.jwt.JwtProvider;
-import com.SideProject.GALE.mapper.auth.AuthMapper;
 import com.SideProject.GALE.mapper.board.BoardMapper;
 import com.SideProject.GALE.model.board.BoardDto;
+import com.SideProject.GALE.model.board.BoardReadDto;
 import com.SideProject.GALE.model.board.BoardReviewDto;
-import com.SideProject.GALE.util.TimeUtils;
+import com.SideProject.GALE.model.board.BoardReviewReadDto;
+import com.SideProject.GALE.model.board.ReportReviewDto;
+import com.SideProject.GALE.service.file.FileService;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class BoardService {
-	
+
 	private final BoardMapper boardMapper;
-	
-	
-	public List<BoardDto> GetUserPrivateList(int category, String email)
-	{
-		List<BoardDto> getAllList = null;
-		
-		Map<String,Object> map = new HashMap<String,Object>();
-		map.put("category", category);
-		map.put("writer", email);
-		
+	private final JwtProvider jwtProvider;
+	private final FileService fileService;
+
+	public List<BoardDto> GetList(int board_Category) {
+		List<BoardDto> list = null;
+//		try {
+//			list = boardMapper.GetPublicList(board_Category);
+//		} catch (Exception ex) {
+//			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+//		}
+
+		return list;
+	}
+
+//	public Integer GetIndex(BoardDto parameter_BoardDto)
+//	{
+//		Integer queryIdx = null;
+//		try {
+//			queryIdx = boardMapper.GetIndex(parameter_BoardDto);
+//		} catch(Exception ex) {
+//			queryIdx = null;
+//			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+//		};		
+//		return queryIdx;
+//	}
+
+//	public Integer GetIndex(BoardReviewDto parameter_BoardReviewDto)
+//	{
+//		Integer queryIdx = null;
+//		try {
+//			queryIdx = boardMapper.GetIndex_Review(parameter_BoardReviewDto);
+//		} catch(Exception ex) {
+//			queryIdx = null;
+//			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+//		};		
+//		return queryIdx;
+//	}
+
+	@Transactional(propagation = Propagation.NESTED)
+	public void Write(HttpServletRequest request, BoardDto boardDto) {
+		// 요청사항이 맞는지 확인
+		if (boardDto.getUserid().equals(jwtProvider.RequestTokenDataParser(request).get("userid")) == false)
+			throw new CustomRuntimeException(ResCode.BAD_REQUEST_NOTEQUALS_DATA);
+
 		try {
-			getAllList = boardMapper.GetUserPrivateList(map);
-		} catch(Exception ex) {
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
+			boardDto.setRegdate(LocalDateTime.now().withNano(0)); // 시간 설정. Second로 해야함. MilliSecond로 하면, 나노초때문에 idx
+																	// select문 날릴 시 null값 뜸. db에서 그 nano초를 설정하거나
+																	// Seconds로 설정해야 함.
+			int result = boardMapper.Write(boardDto);
+			
+			if(result != 1)
+				throw new Exception();
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+
+	}
+
+	public BoardReadDto Read(int board_Number) {
+		BoardReadDto queryBoardDto;
+		try {
+			queryBoardDto = boardMapper.Read(board_Number);
+			
+			if(queryBoardDto == null)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_DATA);
+				
+			queryBoardDto.setAllAverage( //따로 Service에서 작업한 이유 : sql로 작업하면 한번더 값을 호출하기 때문에 속도 저하가 있을 것으로 보여서.
+				(
+						queryBoardDto.getSatisfaction()
+						+ queryBoardDto.getService()
+						+ queryBoardDto.getPrice()
+						+ queryBoardDto.getCongestion()
+						+ queryBoardDto.getAccessibility()
+				) / 5 
+			);
+		}catch (CustomRuntimeException ex) {
+			throw ex;
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}
 		
-		return getAllList;
+		return queryBoardDto;
 	}
-	
-	
-	public List<BoardDto> GetPublicList(int category)
-	{
-		List<BoardDto> getAllList = null;
+
+	@Transactional(propagation = Propagation.NESTED)
+	public void Update(HttpServletRequest request, BoardDto boardDto) {
+		// 업데이트를 위한 게시물 인덱스 설정
+		String queryUserid = boardMapper.GetBoardUserid(boardDto.getBoard_number());
+		
+		// 요청사항이 맞는지 확인 (작성자, 요청사항, 글 요청한 데이터 자기가 쓴 글인지 확인)
+		if(StringUtils.hasText(queryUserid) == false)
+			throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_DATA);			
+		
+		if ( queryUserid.equals(jwtProvider.RequestTokenDataParser(request).get("userid")) == false )
+			throw new CustomRuntimeException(ResCode.FORBIDDEN_UNAUTHENTICATED_REQUEST);
+
 		try {
-			getAllList = boardMapper.GetPublicList(category);
-		} catch(Exception ex) {
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
+			int result = boardMapper.Update(boardDto);
+			if(result != 1)
+				throw new Exception();
+			
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	@Transactional(propagation = Propagation.NESTED)
+	public void Delete(HttpServletRequest request, int board_Number) {	
+		
+		try 
+		{
+			String queryBoardUserId = boardMapper.GetBoardUserid(board_Number);
+			
+			if (queryBoardUserId == null)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_DATA);
+
+			// 아이디 맞는지 확인
+			if (queryBoardUserId.equals(jwtProvider.RequestTokenDataParser(request).get("userid")) == false)
+				throw new CustomRuntimeException(ResCode.FORBIDDEN_UNAUTHENTICATED_REQUEST);
+
+			
+			int result = boardMapper.Delete(board_Number);
+			fileService.Remove_BoardImagesFolder(board_Number);
+			
+			if(result < 1)
+				throw new Exception();
+		} catch (CustomRuntimeException ex) {
+			throw ex;
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}
 		
-		return getAllList;
+	}
+
+	// [Review]-------------------------------------------------------------------
+
+	@Transactional(propagation = Propagation.NESTED)
+	public void Write_Review(HttpServletRequest request, BoardReviewDto boardReviewDto) {
+
+		// 아이디 맞는지 확인
+		if (boardReviewDto.getUserid().equals(jwtProvider.RequestTokenDataParser(request).get("userid")) == false)
+			throw new CustomRuntimeException(ResCode.BAD_REQUEST_NOTEQUALS_DATA);
+
+		try {
+			boardReviewDto.setRegdate(LocalDateTime.now().withNano(0)); // 시간 설정. Second로 해야함. MilliSecond로 하면, 나노초때문에
+																		// idx select문 날릴 시 null값 뜸. db에서 그 nano초를 설정하거나
+																		// Seconds로 설정해야 함.
+			int result = boardMapper.Write_Review(boardReviewDto);
+			
+			if(result != 1)
+				throw new Exception();
+			
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+
 	}
 	
 	
-	public Integer GetIndex(BoardDto parameter_BoardDto)
+	public List<BoardReviewDto> Read_BoardReviewPagingList(int board_Number, int review_CurrentPage)
 	{
-		Integer queryIdx = null;
+		List<BoardReviewDto> reviewDto;
 		try {
-			queryIdx = boardMapper.GetIndex(parameter_BoardDto);
+			Map<String,Integer> map = new HashMap<String,Integer>();
+			map.put("board_Number", board_Number);
+			int calculationCursor= review_CurrentPage * 5; // 프론트에는 1,2,3,4,5,6,7대로 순서대로가고 그것에 맞게 현재페이지 cursor 값을 설정해서 sql로 넘김. 5개씩 리뷰가 보이도록 했으니 *5로 했음.
+			map.put("calculationCursor", calculationCursor);
+
+			reviewDto = boardMapper.Read_BoardReviewPagingList(map);
+			
+			if(reviewDto.size() < 1)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARD);
+		} catch(CustomRuntimeException ex) {
+			throw ex;
 		} catch(Exception ex) {
-			queryIdx = null;
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
-		};		
-		return queryIdx;
-	}
-	
-	
-	public Integer GetIndex(BoardReviewDto parameter_BoardReviewDto)
-	{
-		Integer queryIdx = null;
-		try {
-			queryIdx = boardMapper.GetIndex_Review(parameter_BoardReviewDto);
-		} catch(Exception ex) {
-			queryIdx = null;
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
-		};		
-		return queryIdx;
-	}
-	
-	
-	@Transactional
-	public boolean Write(BoardDto boardDto) 
-	{
-		int result = 0;
-		try {
-			boardDto.setRegdate(LocalDateTime.now().withNano(0)); // 시간 설정. Second로 해야함. MilliSecond로 하면, 나노초때문에 idx select문 날릴 시 null값 뜸. db에서 그 nano초를 설정하거나 Seconds로 설정해야 함.
-			result = boardMapper.Write(boardDto);
-		} catch(Exception ex) {
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);			
 		}
 		
-		return (result == 1) ? true : false;	
+		return reviewDto;
 	}
-		
-	
-	public BoardDto Read(int idx)
-	{
-		BoardDto boardDto = new BoardDto();
+
+	public BoardReviewReadDto Read_Review(int board_Review_Number) {
+		BoardReviewReadDto queryBoardReviewDto;
 		try {
-			boardDto = boardMapper.Read(idx);
-			//boardDto = boardDto.stream()
-		} catch(Exception ex) {
-			boardDto = null;
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
-		};		
-		return boardDto;
+			queryBoardReviewDto = boardMapper.Read_Review(board_Review_Number);
+			
+			if(queryBoardReviewDto == null)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARDREVIEW);
+			
+		} catch (CustomRuntimeException ex) {
+			throw ex;
+		}  catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+		return queryBoardReviewDto;
 	}
+
 	
-	
-	public boolean Update(BoardDto boardDto)
-	{
-		int result = 0;
-		try {
-			result = boardMapper.Update(boardDto);
-		} catch(Exception ex) {
-			System.out.println("에러내용 : " + ex);
-		};
-		
-		return (result == 1) ? true : false;
-	}
-	
-	
-	public boolean Delete(int idx)
-	{
-		int result = 0;
-		try {
-			result = boardMapper.Delete(idx);
-		} catch(Exception ex) {};
-		
-		return (result == 1) ? true : false;
-	}
-	
-	
-	//Review-------------------------------------------------------------------
 	
 	@Transactional(propagation = Propagation.NESTED)
-	public boolean Write(BoardReviewDto boardReviewDto) 
-	{
-		int result = 0;
-		try {
-			boardReviewDto.setRegdate(LocalDateTime.now().withNano(0)); // 시간 설정. Second로 해야함. MilliSecond로 하면, 나노초때문에 idx select문 날릴 시 null값 뜸. db에서 그 nano초를 설정하거나 Seconds로 설정해야 함.
-			result = boardMapper.Write_Review(boardReviewDto);
-		} catch(Exception ex) {
-			throw new CustomRuntimeException(HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "Server Error - Database");
-		}
-		
-		return (result == 1) ? true : false;	
-	}
-	
-	
-	public boolean Delete_Review(int idx, String writer)
+	public void Delete_Review(HttpServletRequest request, int board_review_number) 
 	{
 		int result = 0;
 
-		Map hashMap = new HashMap();
-		hashMap.put("idx", idx);
-		hashMap.put("writer", writer);
-		
+		String queryBoardReviewUserId = boardMapper.GetBoardReviewUserid(board_review_number);
+		if (StringUtils.hasText(queryBoardReviewUserId) == false)
+			throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_REVIEW_DATA);
+
+		// 아이디 맞는지 확인
+		if (queryBoardReviewUserId.equals(jwtProvider.RequestTokenDataParser(request).get("userid")) == false)
+			throw new CustomRuntimeException(ResCode.BAD_REQUEST_NOTEQUALS_DATA);
+
 		try {
-			result = boardMapper.Delete_Review(hashMap);
-		} catch (Exception ex) {};
-		
-		return (result == 1) ? true : false;
+			result = boardMapper.Delete_Review(board_review_number);
+			
+			if(result < 1)
+				throw new Exception();
+			
+			fileService.Remove_BoardReviewImagesFolder(board_review_number);
+		} catch (CustomRuntimeException ex) {
+			throw ex;
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
 	}
 	
 	
-	public boolean Like_Review(int board_review_idx, String userid)
+	
+	public void Report_Review(HttpServletRequest request, ReportReviewDto reportReviewDto)
 	{
-		int result = 0;
-		
-		Map hashMap = new HashMap();
-		hashMap.put("board_review_idx", board_review_idx);
-		hashMap.put("userid", userid);
-		
-		try {
-			result = boardMapper.Like_Review(hashMap);
-		} catch (Exception ex) {};
-		
-		return (result == 1) ? true : false;
-		
+		if (reportReviewDto.getReporter_userid().equals(jwtProvider.RequestTokenDataParser(request).get("userid")) == false)
+			throw new CustomRuntimeException(ResCode.BAD_REQUEST_NOTEQUALS_DATA);
+		try 
+		{
+			int result = boardMapper.Report_Review(reportReviewDto);
+			if (result != 1)
+				 throw new Exception();
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
 	}
 }
