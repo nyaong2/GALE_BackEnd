@@ -14,7 +14,7 @@ public class MybatisConfig {
 	private final ApplicationContext applicationContext;
 	
 	public MybatisConfig(ApplicationContext applicationContext) {
-		this.applicationContext = applicationContext; //sqlSessionFactory 메소드에서 setMapperLocations의 xml를 불러오기 위해 사용.
+		this.applicationContext = applicationContext;
 	}
 	
 	@Bean // sqlSessionFactoryBean의 기본설정 (설정값, setMapperLocations로 mapper 파일 스캔 경로등등)

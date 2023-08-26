@@ -1,26 +1,23 @@
 package com.SideProject.GALE.controller.file;
 
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
+import org.json.JSONArray;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.SideProject.GALE.components.io.utils.CustomInputStreamResource;
-import com.SideProject.GALE.components.response.ResponseHeaders;
-import com.SideProject.GALE.enums.ResCode;
-import com.SideProject.GALE.exception.CustomRuntimeException;
-import com.SideProject.GALE.model.file.FileDto;
+import com.SideProject.GALE.controller.HttpStatusCode.ResponseStatusCodeMsg;
+import com.SideProject.GALE.exception.file.DenyFileExtensionException;
+import com.SideProject.GALE.exception.file.FileNotFoundException;
+import com.SideProject.GALE.exception.file.FileUploadException;
+import com.SideProject.GALE.exception.file.FileUploadDuplicateException;
+import com.SideProject.GALE.service.ResponseService;
 import com.SideProject.GALE.service.file.FileService;
 
 import lombok.RequiredArgsConstructor;
@@ -30,55 +27,88 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping(value = "/file")
 public class FileController {
 	
-	//https:taetaetae.github.io/2019/07/21/spring-file-upload/
+	//https://taetaetae.github.io/2019/07/21/spring-file-upload/
+	private final ResponseService responseService;
 	private final FileService fileService;
-	private final com.SideProject.GALE.components.response.ResponseService responseService;
+	
 
-	// upload는 Board에서 처리하기에 따로 처리하지 않음.
+
+	@PostMapping(value = "/upload")
+	@Transactional
+	public ResponseEntity upload(MultipartFile file) {
+		boolean result = false;
+		
+		try {
+			result = fileService.Save(file);
+		} catch (DenyFileExtensionException ex) {
+			return responseService.CreateBaseEntity(HttpStatus.BAD_REQUEST, null, ResponseStatusCodeMsg.File.FAIL_DENYFILEEXTENSION, ex.getMessage());
+		} catch (FileUploadException ex) {
+			return responseService.CreateBaseEntity(HttpStatus.SERVICE_UNAVAILABLE, null, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, ex.getMessage());	
+		} catch (FileUploadDuplicateException ex) {
+			return responseService.CreateBaseEntity(HttpStatus.CONFLICT, null, ResponseStatusCodeMsg.File.FAIL_DUPLICATEFILE, ex.getMessage());	
+		} catch (Exception e) {}
+		
+		return responseService.CreateBaseEntity(HttpStatus.OK, null, ResponseStatusCodeMsg.SUCCESS, "업로드에 성공하였습니다.");
+	}
+	
+	@PostMapping(value = "/upload/profile")
+	@Transactional
+	public ResponseEntity uploadProfile(MultipartFile file) {
+		boolean result = false;
+		
+		try {
+			result = fileService.Save(file);
+		} catch (DenyFileExtensionException ex) {
+			return responseService.CreateBaseEntity(HttpStatus.BAD_REQUEST, null, ResponseStatusCodeMsg.File.FAIL_DENYFILEEXTENSION, ex.getMessage());
+		} catch (FileUploadException ex) {
+			return responseService.CreateBaseEntity(HttpStatus.SERVICE_UNAVAILABLE, null, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, ex.getMessage());	
+		} catch (FileUploadDuplicateException ex) {
+			return responseService.CreateBaseEntity(HttpStatus.CONFLICT, null, ResponseStatusCodeMsg.File.FAIL_DUPLICATEFILE, ex.getMessage());	
+		} catch (Exception e) {}
+		
+		return responseService.CreateBaseEntity(HttpStatus.OK, null, ResponseStatusCodeMsg.SUCCESS, "업로드에 성공하였습니다.");
+	}
+
+	
+    @PostMapping("/multiupload")
+	@Transactional
+    public ResponseEntity uploadMultipleFiles(@RequestParam("file") MultipartFile[] files) {
+    	boolean result = false;
+    	
+    	int count= 0;
+    	for(MultipartFile file : files)
+       {
+    		try {
+    			result = fileService.Save(file);
+    		} catch (DenyFileExtensionException ex) {
+    			return responseService.CreateBaseEntity(HttpStatus.BAD_REQUEST, null, ResponseStatusCodeMsg.File.FAIL_DENYFILEEXTENSION, ex.getMessage());
+    		} catch (FileUploadException ex) {
+    			return responseService.CreateBaseEntity(HttpStatus.SERVICE_UNAVAILABLE, null, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, ex.getMessage());	
+    		} catch (FileUploadDuplicateException ex) {
+    			return responseService.CreateBaseEntity(HttpStatus.CONFLICT, null, ResponseStatusCodeMsg.File.FAIL_DUPLICATEFILE, ex.getMessage());	
+    		} catch (Exception e) {}
+       }
+		return responseService.CreateBaseEntity(HttpStatus.OK, null, ResponseStatusCodeMsg.SUCCESS, "test");
+    }
+	
     
-	
-	
-	@GetMapping(value = "/download/board")
-	public ResponseEntity<?> downloadBoardImages(@RequestParam int board_Number, @RequestParam int order_Number) {
-		//https://jaehoney.tistory.com/277
-		// byte[]로 반환은 서버에서 파일을 읽은 데이터를 메모리에 올려야 하기 때문에 Resource 방식으로 이용.
+	@GetMapping(value = "/download")
+	public ResponseEntity download(@RequestParam String fileName) {
+		byte[] fileByte = null;
 		
-		File imageFile = fileService.Download_BoardImage(board_Number, order_Number);
-		
-		InputStream inputStream;
 		try {
-			inputStream = new FileInputStream(imageFile);
-		} catch (Exception ex) {
-			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+			fileByte = fileService.Download(fileName);
+		} catch (FileNotFoundException ex) {
+			return responseService.CreateBaseEntity(HttpStatus.NOT_FOUND, null, ResponseStatusCodeMsg.File.FAIL_NOTFOUND, "파일을 찾을 수 없습니다.");
 		}
 		
-		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
-		
-		return responseService.CreateImage(
-				ResponseHeaders.DownloadImageHeader(imageFile)
-				, ResCode.SUCCESS
-				, inputStreamResource);
-	}
-	
-	
-	@GetMapping(value = "/download/board/review")
-	public ResponseEntity<?> downloadBoardReviewImage(@RequestParam int board_Review_Number, @RequestParam int order_Number)
-	{
-		File imageFile = fileService.Download_BoardReviewImage(board_Review_Number, order_Number);
-        
-		InputStream inputStream;
-		try {
-			inputStream = new FileInputStream(imageFile);
-		} catch (Exception ex) {
-			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
-		}
-		
-		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
-		
-		return responseService.CreateImage(
-				ResponseHeaders.DownloadImageHeader(imageFile)
-				, ResCode.SUCCESS
-				, inputStreamResource);
-	}
+		if(fileByte == null)
+			return responseService.CreateBaseEntity(HttpStatus.SERVICE_UNAVAILABLE, null, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "서버에서 처리하지 못했습니다. 다시 시도 해주세요.");	
+
+		JSONArray jsary = new JSONArray(fileByte);
+
+		return new ResponseEntity<>(fileByte,null,HttpStatus.OK);
+		//return responseService.CreateListEntity(HttpStatus.CREATED, null, BoardResCode.SUCCESS, "test", jsary);
+	}	
 	
 }

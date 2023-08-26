@@ -1,41 +1,34 @@
 package com.SideProject.GALE.jwt;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
-import com.SideProject.GALE.enums.ResCode;
-import com.SideProject.GALE.exception.CustomException;
+import com.SideProject.GALE.GaleApplication;
+import com.SideProject.GALE.controller.HttpStatusCode.ResponseStatusCodeMsg;
 import com.SideProject.GALE.exception.CustomRuntimeException;
+import com.SideProject.GALE.util.TimeUtils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -44,7 +37,6 @@ public class JwtProvider {
 	
 	@Value("${jwt.secret}")
 	private String JWT_SECRETKEY;
-	private SecretKey SECRETKEY_BYTE = null;
 	
 	@Value("${jwt.accessToken_MilliSeconds}")
 	private long JWT_ACCESS_MILLISECONDS;
@@ -60,72 +52,19 @@ public class JwtProvider {
 	@Value("${jwt.bearer}")
 	private String JWT_BEARER;
 	
-	//Token Header
-    public  final String AUTHORIZATION_HEADER = "Authorization";
-    public  final String BEARER_PREFIX = "Bearer ";
-    
+	private final UserDetailsService userDetailsService;
+	
 	private Map<String, Object> header = null;
 	
     @PostConstruct
     protected void init() {
-    	//JWT_SECRETKEY = Base64.getEncoder().encodeToString(JWT_SECRETKEY.getBytes()); // SecretKey Base64로 인코딩
-    	//SECRETKEY_BYTE = Keys.hmacShaKeyFor(JWT_SECRETKEY.getBytes(StandardCharsets.UTF_8));
-        //String decodedKey = Base64.getEncoder().encodeToString(JWT_SECRETKEY.getBytes()); // SecretKey Base64로 인코딩;
-        byte[] decodedKeyBytes = JWT_SECRETKEY.getBytes(StandardCharsets.UTF_8);
-        
-        SECRETKEY_BYTE = new SecretKeySpec(decodedKeyBytes, "HmacSHA384");
+    	JWT_SECRETKEY = Base64.getEncoder().encodeToString(JWT_SECRETKEY.getBytes()); // SecretKey Base64로 인코딩
+    	
     	//Header Setting
     	header = new HashMap<>();
     	header.put("typ", "JWT");
-    	header.put("alg", "HS384");
+    	header.put("alg", "HS256");
     }
-    
-    // Request Header 에서 토큰 정보를 꺼내오기
-    public String resolveToken(HttpServletRequest request) {
-    	String resolveToken = null;
-        String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
-        	resolveToken =  bearerToken.substring(7);
-        }
-        if(StringUtils.hasText(resolveToken) == false)
-        	throw new CustomRuntimeException(ResCode.BAD_REQUEST_NULLDATA);
-        
-        return resolveToken;
-    }
-    
-    
-	public Authentication getAuthentication(String token) {
-
-        Claims claims = null;
-        try {
-        	claims= this.parseClaims(token);
-        } catch (Exception ex) {
-        	return null;
-        };
-//		        
-//        Integer authorityValue = null;
-//        if(claims != null)
-//        	authorityValue= Integer.parseInt(claims.get("role").toString());
-//        	
-        String role = claims.get("role").toString();
-        if(StringUtils.hasText(role) == false)
-        	return null;
-        Set<GrantedAuthority> roles = null;
-        
-//        	role = AuthorityEnum.GetIntegerAuthorityToString(authorityValue);
-        	roles = new HashSet<>();
-        	roles.add(new SimpleGrantedAuthority(role));
-        
-        
-        Collection<? extends GrantedAuthority> authorities =
-                Arrays.stream(role.split("_"))
-                        .map(SimpleGrantedAuthority::new)
-                        .collect(Collectors.toList());
-        UserDetails principal = new User(claims.get("userid").toString(), "", authorities);
-        return new UsernamePasswordAuthenticationToken(principal, null, roles);
-	}
-	
-
     
 	//Claims : jwt에서 사용하는 구조를 쌍으로 만드는것.
 	/* jwt 구조 : Header, Payload(Claims), Signature 
@@ -141,124 +80,151 @@ public class JwtProvider {
 	 * Signature : 비밀키를 포함하여 암호화 되어있음.
 	 */
     
+    public Date CreateDate()
+    {
+    	return new Date();
+    }
+    
+    
+    
     //Generate
-    public Map<String,Object> GenerateAllToken(Authentication authentication) {
-    	
+    public Map<String,Object> GenerateAllToken(String email) {
     	Map<String, Object> tokens = new HashMap<String, Object>();
     	
-    	Date date = new Date();  	
+    	Map<String, Object> payload = new HashMap<>();
+    	payload.put("email", email);
+    	payload.put("role", 1);
     	
-    	Map<String, Object> payload = new HashMap<>(); // 만료시간은 GenerateToken에서 설정하는것으로.
-    	payload.put("userid", authentication.getName()); //프론트 엔드 요청으로 넣음.
-    	payload.put("role", authentication.getAuthorities().stream()
-    								.map(GrantedAuthority::getAuthority)
-    								.collect(Collectors.joining(",")));
-    	payload.put("iat", date.getTime()); //발급시간
+    	Date date = this.CreateDate();
     	
+    	long atExpiryMilliSeconds = (date.getTime() + JWT_ACCESS_MILLISECONDS);
+    	long rtExpiryMilliSeconds = (date.getTime() + JWT_REFRESH_MILLISECONDS);
+    	tokens.put("atExpiryMilliSeconds", atExpiryMilliSeconds);
+    	tokens.put("rtExpiryMilliSeconds", rtExpiryMilliSeconds);
+    	
+    	
+    	if(GaleApplication.LOGMODE)
+    		System.out.println("[JwtTokenProvider - GenerateAllToken] 생성 시도 [ID : " + email + "]");
+
+    	try{
     	// 호출된 Service에서 accessToken Response 및 RefreshToken을 DB에 저장하기 위헤 Map 형태로 put하여 데이터 리턴
-    	try {
-    		tokens.put("accessToken", this.GenerateAccessToken(payload, date));
-    		tokens.put("refreshToken", this.GenerateRefreshToken(payload, date));
-    	} catch (Exception ex) {
-    		throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+    		tokens.put("email", email); //프론트엔드 요청으로 넣음.
+    		tokens.put("accessToken", this.GenerateAccessToken(payload, date, atExpiryMilliSeconds));
+    		tokens.put("refreshToken", this.GenerateRefreshToken(payload, date, rtExpiryMilliSeconds));
+    		
+    	}catch (Exception ex) {
+    		System.out.println(ex);
     	}
     	return tokens;
     }
     
     
     
-    public String GenerateAccessToken(Map<String,Object> payload,Date date) throws Exception
-    {
-		/*
-		 * date.getTime ,new Date(TimeUtils.GetCurrentMilliSeconds()).getTime() =
-		 * MilliSeconds로 나옴 MilliSeconds = 1/1000 값. 여기서 /1000을 해야 초단위임.
-		 * (MilliSeconds/1000 -> Seconds = 초단위)
-		 */
-		return Jwts.builder()
-    			.setHeader(header)
-    			.setClaims(payload) // 정보 저장
-    			.setExpiration(new Date (date.getTime() + JWT_ACCESS_MILLISECONDS)) // 만료시간
-    			.signWith(SECRETKEY_BYTE,SignatureAlgorithm.HS384)
-    			.compact();
-    }
-    
-    
-    
-    public String GenerateRefreshToken(Map<String,Object> payload, Date date) throws CustomException
+    public String GenerateAccessToken(Map<String,Object> payload, Date date, long expiryMilliSeconds)
     {
     	/*
     	 * date.getTime ,new Date(TimeUtils.GetCurrentMilliSeconds()).getTime() = MilliSeconds로 나옴
     	 * MilliSeconds = 1/1000 값. 여기서 /1000을 해야 초단위임. (MilliSeconds/1000 -> Seconds = 초단위)
     	 */
-		return Jwts.builder()
+        if(GaleApplication.LOGMODE)
+        	System.out.println("At 생성 시간 : " + TimeUtils.CurrentTimeStr(date.getTime()) + "만료 시간 : " + TimeUtils.CurrentTimeStr(expiryMilliSeconds) );
+    	
+        try{
+    		return Jwts.builder()
     			.setHeader(header)
     			.setClaims(payload) // 정보 저장
-    			.setExpiration(new Date (date.getTime() + JWT_REFRESH_MILLISECONDS)) // 만료시간
-    			.signWith(SECRETKEY_BYTE,SignatureAlgorithm.HS384)
-    			.compact();
-    }
-    
-
-    
-    
-//    public Jws<Claims> decryptionToken(String token) throws CustomRuntimeException {
-//    	try {
-//    		return Jwts.parser()
-//    				.setSigningKey(JWT_SECRETKEY)
-//    				.parseClaimsJws(token);
-//    		
-//    	} catch(ExpiredJwtException ex) { // 시간만료
-//    		throw new CustomException("[JwtProvider - GenerateRefreshToken]", payload.get("userid").toString(), 
-//    				HttpStatus.SERVICE_UNAVAILABLE, ResponseStatusCodeMsg.Auth.FAIL_SERVER_CREATETOKEN, "Server Error [Create Token]");    	} catch(SignatureException | MalformedJwtException | UnsupportedJwtException ex) { 
-//    		// Signature : 서버 비밀키로 안풀렸을 때 , Malformed = 구조 안맞는 토큰 , Unsupported = 지원하지않는 토큰
-//			throw new CustomRuntimeException("[JWT - decryptionToken]", HttpStatus.UNAUTHORIZED, ResponseStatusCodeMsg.Auth.FAIL_DIFFERENTTOKEN, "요청하신 토큰이 서버와 맞지 않는 토큰입니다.");
-//    	} catch(Exception e) {
-//    		return null;
-//    	}
-//    }
-    
-    
-    
-    public void validateToken(String token) {
-    	try {
-    		Jwts.parserBuilder().setSigningKey(SECRETKEY_BYTE).build().parseClaimsJws(token);
-    	} catch(io.jsonwebtoken.security.SecurityException | MalformedJwtException | UnsupportedJwtException | IllegalArgumentException ex) {
-    		// [Security = 서명체크,만료된 토큰, 알수없는 키, 혀용되지않은 액세스]  [Malformed = 구조 안맞는 토큰]  [Unsupported = 지원하지않는 토큰] , [IllegalArgument = claims이 비어있는 경우]
-			throw new CustomRuntimeException(ResCode.UNAUTHORIZED_USER_UNSUPPORT_TOKEN);
-    	} catch(ExpiredJwtException ex) { 
-    		// 시간만료
-			throw new CustomRuntimeException(ResCode.UNAUTHORIZED_USER_INVALID_TOKEN);
+    			.setIssuedAt(date) // 토큰 발행 시간정보
+    			.setExpiration(new Date(expiryMilliSeconds)) // 토큰 유효시간 설정
+    			.signWith(SignatureAlgorithm.HS256, JWT_SECRETKEY) // 알고리즘, 키값으로 서명할 것인지 설정
+    			.compact(); // 압축
+    	} catch(Exception ex) {
+    		return null;
     	}
+ 
     }
     
     
-    public Claims parseClaims(String token){
-    	Claims claims = null;
-    	try {
-    		claims =  Jwts.parserBuilder().setSigningKey(SECRETKEY_BYTE).build().parseClaimsJws(token).getBody();
-
-    		if( Objects.isNull(claims.get("userid")) )
-    			throw new UnsupportedJwtException(token);
-    		
-    	} catch(io.jsonwebtoken.security.SecurityException | MalformedJwtException | UnsupportedJwtException | IllegalArgumentException ex) {
-    		// [Security = 서명체크,만료된 토큰, 알수없는 키, 혀용되지않은 액세스]  [Malformed = 구조 안맞는 토큰]  [Unsupported = 지원하지않는 토큰] , [IllegalArgument = claims이 비어있는 경우]
-			throw new CustomRuntimeException(ResCode.UNAUTHORIZED_USER_UNSUPPORT_TOKEN);
-    	} catch(ExpiredJwtException ex) { 
-    		// 시간만료
-			throw new CustomRuntimeException(ResCode.UNAUTHORIZED_USER_INVALID_TOKEN);
-    	}
-    	
-    	return claims;
-    }
     
-    public Claims RequestTokenDataParser(HttpServletRequest request)
+    public String GenerateRefreshToken(Map<String,Object> payload, Date date, long expiryMilliSeconds)
     {
-		String token = this.resolveToken(request);
-
-		if(StringUtils.hasText(token) == false)
-			throw new CustomRuntimeException(ResCode.NOT_FOUND_USER_NULLTOKEN);
-
-		return this.parseClaims(token);
+    	/*
+    	 * date.getTime ,new Date(TimeUtils.GetCurrentMilliSeconds()).getTime() = MilliSeconds로 나옴
+    	 * MilliSeconds = 1/1000 값. 여기서 /1000을 해야 초단위임. (MilliSeconds/1000 -> Seconds = 초단위)
+    	 */
+    	
+        if(GaleApplication.LOGMODE)
+        	System.out.println("Rt 생성 시간 : " + TimeUtils.CurrentTimeStr(date.getTime()) + "만료 시간 : " + TimeUtils.CurrentTimeStr(expiryMilliSeconds) );
+    	
+    	
+    	try{
+    		return Jwts.builder()
+    			.setClaims(payload) // 정보 저장
+    			.setIssuedAt(date) // 토큰 발행 시간정보
+    			.setExpiration(new Date(expiryMilliSeconds)) // 토큰 유효시간 설정
+    			.signWith(SignatureAlgorithm.HS256, JWT_SECRETKEY) // 암호화 방식
+    			.compact(); // 압축
+    	} catch(Exception ex) {
+    		return null;
+    	}
+    }
+    
+    
+    
+    public String GetUserEmailToTokenConversion(String token) {
+    	return Jwts.parser()
+    			.setSigningKey(JWT_SECRETKEY)
+    			.parseClaimsJws(token)
+    			.getBody()
+    			.getSubject();
+    }
+    
+    
+    
+    public Jws<Claims> decryptionToken(String token) throws CustomRuntimeException {
+    	try {
+    		return Jwts.parser()
+    				.setSigningKey(JWT_SECRETKEY)
+    				.parseClaimsJws(token);
+    		
+    	} catch(ExpiredJwtException ex) { // 시간만료
+			throw new CustomRuntimeException(HttpStatus.UNAUTHORIZED, ResponseStatusCodeMsg.Auth.FAIL_INVALIDTOKEN, "요청하신 토큰이 만료되었습니다.");
+    	} catch(SignatureException | MalformedJwtException | UnsupportedJwtException ex) { 
+    		// Signature : 서버 비밀키로 안풀렸을 때 , Malformed = 구조 안맞는 토큰 , Unsupported = 지원하지않는 토큰
+			throw new CustomRuntimeException(HttpStatus.UNAUTHORIZED, ResponseStatusCodeMsg.Auth.FAIL_DIFFERENTTOKEN, "요청하신 토큰이 서버와 맞지 않는 토큰입니다.");
+    	} catch(Exception e) {
+    		return null;
+    	}
+    }
+    
+    
+    
+    public boolean validateToken(String token) throws CustomRuntimeException {
+    	try {
+    		Jws<Claims> claims = Jwts.parser().setSigningKey(JWT_SECRETKEY).parseClaimsJws(token);
+    		return !claims.getBody().getExpiration().before(new Date()); //만료가 안됐을 경우 = true
+    	} catch(ExpiredJwtException ex) { // 시간만료
+			throw new CustomRuntimeException(HttpStatus.UNAUTHORIZED, ResponseStatusCodeMsg.Auth.FAIL_INVALIDTOKEN, "요청하신 토큰이 만료되었습니다.");
+    	} catch(SignatureException | MalformedJwtException | UnsupportedJwtException ex) { 
+    		// Signature : 서버 비밀키로 안풀렸을 때 , Malformed = 구조 안맞는 토큰 , Unsupported = 지원하지않는 토큰
+			throw new CustomRuntimeException(HttpStatus.UNAUTHORIZED, ResponseStatusCodeMsg.Auth.FAIL_DIFFERENTTOKEN, "요청하신 토큰이 서버와 맞지 않는 토큰입니다.");
+    	}
+    }
+    
+    public Claims getClaims(String token) throws CustomRuntimeException {
+    	try {
+    		return Jwts.parser().setSigningKey(JWT_SECRETKEY).parseClaimsJws(token).getBody();
+    	} catch(ExpiredJwtException ex) { // 시간만료
+			throw new CustomRuntimeException(HttpStatus.UNAUTHORIZED, ResponseStatusCodeMsg.Auth.FAIL_INVALIDTOKEN, "요청하신 토큰이 만료되었습니다.");
+    	} catch(SignatureException | MalformedJwtException | UnsupportedJwtException ex) { 
+    		// Signature : 서버 비밀키로 안풀렸을 때 , Malformed = 구조 안맞는 토큰 , Unsupported = 지원하지않는 토큰
+			throw new CustomRuntimeException(HttpStatus.UNAUTHORIZED, ResponseStatusCodeMsg.Auth.FAIL_DIFFERENTTOKEN, "요청하신 토큰이 서버와 맞지 않는 토큰입니다.");
+    	}
+    }
+    
+    //
+    public Authentication GetAuthentication(String token) {
+    	UserDetails userDetails = userDetailsService.loadUserByUsername(this.GetUserEmailToTokenConversion(token));    			
+    	return new UsernamePasswordAuthenticationToken(token, "", userDetails.getAuthorities());
     }
     
 }

@@ -14,8 +14,6 @@ public class PasswordEncoderConfig {
 	 */
 	@Bean
 	public PasswordEncoder passwordEncoder() {
-		//PasswordEncoderFactories.createDelegatingPasswordEncoder(); -> 스프링 시큐리티 기본 제공 팩토리 메서드
-		return new BCryptPasswordEncoder(); // BCrypt 해시 알고리즘을 사용하여 비밀번호를 안전하게 인코딩하는 데에 사용
-		//BCrypt = 1회 해시만 하는 것이 솔트를 부여해 여러번 해싱하여 좀 더 안전
+		return new BCryptPasswordEncoder();
 	}
 }

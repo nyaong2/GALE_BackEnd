@@ -1,59 +1,53 @@
   #!-- Port 
 server.port: 7777
 
-
 #!-- DataBase [MariaDB]
 spring:
-# main:
-#    allow-circular-references: true
- 
-# logging:
-#  config: classpath:log4j2.xml
-# 
+ main:
+    allow-circular-references: true
+
  servlet:
-  multipart:
-   enabled: true
-   location: C:\GALE           #업로드된 파일의 저장공간
-   file-size-threshold: 1MB     # 파일이 메모리에 기록되는 최대치
-   max-file-size: 200MB        # 파일 최대 사이즈
-   max-request-size: 200MB  # 요청 파일 최대 사이즈
-            
- datasource:
-  hikari:
-   driver-class-name: org.mariadb.jdbc.Driver
-   url: jdbc:mariadb://localhost:3306/gale?useSSL=false&autoReconnect=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Seoul
-   username: root
-   password: gale134
-   connection-timeout: 3000
-   validation-timeout: 3000
-   minimum-idle: 5
-   max-lifetime: 240000
-   maximum-pool-size: 20
-
-
- mybatis:
-  mapper-locations: classpath:/mapper/**/*.xml
-  type-aliases-package: com.SideProject.GALE.dto
+    multipart:
+      enabled: true
+      location: C:\GALE           #업로드된 파일의 저장공간
+      file-size-threshold: 1MB     # 파일이 메모리에 기록되는 최대치
+      max-file-size: 200MB        # 파일 최대 사이즈
+      max-request-size: 200MB  # 요청 파일 최대 사이즈
 
  redis:
-  host: localhost
-  port: 6379
-  pool:
-    min-idle: 0
-    max-idle: 8
-    max-active: 8
+    host: localhost
+    port: 6379
+    pool:
+      min-idle: 0
+      max-idle: 8
+      max-active: 8
+
+ datasource:
+   hikari:
+     driver-class-name: org.mariadb.jdbc.Driver
+     url: jdbc:mariadb://localhost:3306/gale?useSSL=false&autoReconnect=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Seoul
+     username: root
+     password: gale134
+     connection-timeout: 3000
+     validation-timeout: 3000
+     minimum-idle: 5
+     max-lifetime: 240000
+     maximum-pool-size: 20
 
 jwt:
- header: Authorization
- secret: gale134gale134gale134gale134gale134gale134gale134gale134gale134gale134gale134gale134gale134gale134gale134gale134gale134
- # MilliSeconds = 1/1000 -> [1000 = 1초] [10000 = 10초]
- # (60*1000) = 60000 (1분)
- # (60*1000) * 30 = 1800000 (30분)
- # (60*1000) * 1440 = 86400000 (24시간)
- accessToken_MilliSeconds: 1800000
- refreshToken_MilliSeconds: 86400000 #86400000
- bearer: bearer
+  header: Authorization
+  secret: gale134
+  # MilliSeconds = 1/1000 -> [1000 = 1초] [10000 = 10초]
+  # (60*1000) = 60000 (1분)
+  # (60*1000) * 30 = 1800000 (30분)
+  # (60*1000) * 1440 = 86400000 (24시간)
+  accessToken_MilliSeconds: 1800000
+  refreshToken_MilliSeconds: 86400000 #86400000
+  bearer: bearer
   
+mybatis:
+  mapper-locations: classpath:/mapper/**/*.xml
+  type-aliases-package: com.SideProject.GALE.dto
 
 kakaomap:
     restapi_key: 2baf55e9d9fa1ee11a26878f7b8f6240

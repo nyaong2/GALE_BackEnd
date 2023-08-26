@@ -6,133 +6,102 @@
 
 <mapper namespace="com.SideProject.GALE.mapper.board.BoardMapper">
 
-	<!-- 
-	<select id="GetLikePopularList" parameterType="int" resultType="Map">
-		SELECT idx, category, userid, regdate, locationname, locationaddress, content, likes
+	<select id="GetUserPrivateList" parameterType="Map" resultType="com.SideProject.GALE.model.board.BoardDto">
+		SELECT
+		idx, category, accesstype, writer, regdate, locationname, locationaddress, content, average, likes, price, congestion, accessibility
 		FROM board
-		ORDER BY likes DESC
-		LIMIT 20
+		WHERE category = #{category} AND writer = #{writer} AND accesstype = 0 <!-- <![CDATA[ accesstype = 0]]> -->
 	</select>
-	-->
-	<select id="GetCategoryBoardData" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardDto">
-		SELECT idx, category, userid, regdate, locationname, locationaddress, content, likes
-		FROM board
-		ORDER BY likes DESC
-		LIMIT 20
-	</select>
-	
 
-	<insert id="Write" parameterType="com.SideProject.GALE.model.board.BoardDto"  useGeneratedKeys="true" keyProperty="board_number">
- 		<selectKey resultType="Integer" keyProperty="board_number" order="BEFORE">
-			SELECT IFNULL( MAX(board_number)+1, 1 ) FROM board
-		</selectKey>
-		INSERT INTO board (board_category, board_number, userid, regdate, locationname, locationaddress,
-			longitude, latitue)
-			VALUES (
-			#{board_category}, #{board_number}, #{userid}, #{regdate}, #{locationname}, #{locationaddress},
-			#{longitude}, #{latitue} )
-	</insert>
-	
-	
-	<select id="GetBoardUserid" parameterType="int" resultType="String">
-		SELECT userid
+	<select id="GetPublicList" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardDto">
+		SELECT
+		idx, category, accesstype, writer, regdate, locationname, locationaddress, content, average, likes, price, congestion, accessibility
 		FROM board
-		WHERE board_number = #{board_Number}
+		WHERE category = #{category} AND accesstype = 1
 	</select>
 	
 	
-	<select id="Read" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardReadDto">
-		SELECT 
-			b.*,
-			COALESCE(AVG(br.satisfaction), 0) AS satisfaction,
-       		COALESCE(AVG(br.service), 0) AS service,
-       		COALESCE(AVG(br.price), 0) AS price,
-       		COALESCE(AVG(br.congestion), 0) AS congestion,
-       		COALESCE(AVG(br.accessibility), 0) AS accessibility,
-       		COUNT(br.board_category) AS reviewCount,
-       		 f.order_number AS imageCount
-		FROM board b
-		LEFT OUTER JOIN board_review br ON b.board_category = br.board_category
-		LEFT OUTER JOIN (
-    		SELECT board_category, board_number, MAX(order_number) AS order_number
-    		FROM files
-    		GROUP BY board_category, board_number
-		) f ON b.board_category = f.board_category AND b.board_number = f.board_number
-		WHERE b.board_number = #{board_Number}
-		GROUP BY b.board_number;
+	<select id="GetIndex" parameterType="com.SideProject.GALE.model.board.BoardDto" resultType="Integer">
+		SELECT
+		idx
+		FROM board
+		WHERE category = #{category} AND writer = #{writer} AND regdate = #{regdate} AND locationname = #{locationname} AND locationaddress = #{locationaddress}
+		ORDER BY idx DESC
+		LIMIT 1
+	</select>
+	
+	<select id="GetIndex_Review" parameterType="com.SideProject.GALE.model.board.BoardReviewDto" resultType="Integer">
+		SELECT
+		idx
+		FROM board_review
+		WHERE board_category = #{board_category} AND board_idx = #{board_idx} AND writer = #{writer} 
+		AND regdate = #{regdate}
+		ORDER BY idx DESC
+		LIMIT 1
+	</select>
+	
+	<select id="GetLikePopularList" parameterType="int" resultType="Map">
+		SELECT idx, category, writer, regdate, locationname, locationaddress, content, likes
+		FROM board
+		ORDER BY likes DESC
+		LIMIT 20
+	</select>
+
+
+
+	<insert id="Write" parameterType="com.SideProject.GALE.model.board.BoardDto" useGeneratedKeys="true" keyProperty="idx">
+		INSERT INTO board (idx, category, writer, regdate, locationname, locationaddress,
+			longitude, latitue, content, grade, service, price, congestion, accessibility)
+			VALUES (
+			( SELECT IFNULL(MAX(idx)+1,MAX(idx))),
+			#{category}, #{writer}, #{regdate}, #{locationname}, #{locationaddress},
+			#{longitude}, #{latitue}, #{content}, #{grade}, #{service}, #{price}, #{congestion}, #{accessibility} )
+	</insert>		
+		
+	<select id="Read" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardDto">
+		SELECT
+		writer, regdate, locationname, locationaddress, content, average, likes, price, congestion, accessibility
+		FROM board
+		WHERE idx = #{idx}
 	</select>
 
 	
 	<update id="Update" parameterType="com.SideProject.GALE.model.board.BoardDto">
 		UPDATE board
-		SET board_category = #{board_category}, locationname = #{locationname}, locationaddress = #{locationaddress},
-					longitude = #{longitude}, latitue = #{latitue}
-		WHERE board_number=#{board_number} AND userid=#{userid}
+		SET category = #{category}, locationname = #{locationname}, locationaddress = #{locationaddress},
+					content = #{content}, likes = #{likes}, price = #{price}, congestion = #{congestion}, accessibility = #{accessibility}
+		WHERE idx=#{idx} AND writer=#{writer}
 	</update>
 	
 	
 	<delete id="Delete" parameterType="int">
-	 	DELETE board, files
-		FROM board
-		LEFT OUTER JOIN files ON board.board_number = files.board_number
-		WHERE board.board_number = #{board_Number}
+ 		DELETE FROM gale.board
+ 		WHERE idx = #{idx}
  	</delete>
  	
  	
  	<!--Review-->
- 	<insert id="Write_Review" parameterType="com.SideProject.GALE.model.board.BoardReviewDto" useGeneratedKeys="true" keyProperty="board_review_number">
- 		<selectKey resultType="Integer" keyProperty="board_review_number" order="BEFORE">
-			SELECT IFNULL( MAX(board_review_number)+1, 1 ) FROM board_review
-		</selectKey>
-		INSERT INTO board_review (board_review_number, board_number, userid, regdate, content,
-			 satisfaction, service, price, congestion, accessibility)
+ 	<insert id="Write_Review" parameterType="com.SideProject.GALE.model.board.BoardReviewDto" useGeneratedKeys="true" keyProperty="idx">
+		INSERT INTO board_review (board_category, board_number, writer, regdate, content,
+			 grade, service, price, congestion, accessibility)
 			VALUES (
-			#{board_review_number}, #{board_number}, #{userid}, #{regdate}, 
-			#{content}, #{satisfaction}, #{service}, #{price}, #{congestion}, #{accessibility} )
+			#{board_category}, #{board_number}, #{writer}, #{regdate}, 
+			#{content}, #{grade}, #{service}, #{price}, #{congestion}, #{accessibility} )
 	</insert>
-	
-	
-	<select id="Read_BoardReviewPagingList" parameterType="java.util.HashMap" resultType="com.SideProject.GALE.model.board.BoardReviewDto">
-    	SELECT *
-    	FROM board_review
-    	WHERE board_number = #{board_Number}
-    	ORDER BY board_review_number DESC
-    	LIMIT #{calculationCursor}, 5
-	</select>
-	
-	
-	<select id="GetBoardReviewUserid" parameterType="int" resultType="String">
-		SELECT userid
-		FROM board_review
-		WHERE board_review_number = #{board_Review_Number}
-	</select>
-	
-	
-	<select id="Read_Review" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardReviewReadDto">
-		SELECT
-			br.userid, br.regdate, br.content, br.satisfaction,
-			br.service, br.price, br.congestion, br.accessibility,
-			(SELECT MAX(order_number) FROM files_review WHERE board_review_number = br.board_review_number) AS imageCount
-		FROM board_review br
-		WHERE br.board_review_number = #{board_Review_Number}
-	</select>
 
-
- 	<delete id="Delete_Review" parameterType="int">
- 		DELETE board_review, files_review
-		FROM board_review
-		LEFT JOIN files_review ON board_review.board_review_number = files_Review.board_review_number
-		WHERE board_review.board_review_number = #{board_Review_Number}
+ 	
+ 	<delete id="Delete_Review" parameterType="hashMap">
+		DELETE FROM gale.board
+		WHERE idx = #{idx} AND writer = (
+			SELECT writer FROM board
+			WHERE idx = #{idx}
+			)
 	</delete>
 	
-	<insert id="Report_Review" parameterType="com.SideProject.GALE.model.board.ReportReviewDto">
-		<selectKey resultType="Integer" keyProperty="report_number" order="BEFORE">
-			SELECT IFNULL( MAX(report_number)+1, 1 ) FROM report_review
-		</selectKey>
-		INSERT INTO report_review
-		(report_number, reporter_userid, board_review_number, report_category, content)
-		VALUES
-		(#{report_number}, #{reporter_userid}, #{board_review_number}, #{report_category}, #{content})
+	 <insert id="Like_Review" parameterType="hashMap">
+		REPLACE INTO board_review_like (board_review_idx, userid)
+		VALUES (#{board_review_idx}, #{userid})
 	</insert>
-	
+
+
 </mapper>
