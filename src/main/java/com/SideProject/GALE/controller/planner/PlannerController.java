@@ -1,27 +1,32 @@
 package com.SideProject.GALE.controller.planner;
 
+import java.util.HashMap;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import javax.servlet.http.HttpServletRequest;
+
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.SideProject.GALE.controller.HttpStatusCode.ResponseStatusCodeMsg;
-import com.SideProject.GALE.exception.CustomRuntimeException;
-import com.SideProject.GALE.model.auth.TokenDto;
-import com.SideProject.GALE.model.planner.PlannerDetailsDto;
-import com.SideProject.GALE.model.planner.PlannerDto;
-import com.SideProject.GALE.service.ResponseService;
+import com.SideProject.GALE.components.response.ResponseService;
+import com.SideProject.GALE.controller.user.UserController;
+import com.SideProject.GALE.enums.ResCode;
+import com.SideProject.GALE.model.planner.GetAllListPlannerDto;
+import com.SideProject.GALE.model.planner.PlannerReadDetailsDto;
+import com.SideProject.GALE.model.planner.PlannerWriteRequestDto;
 import com.SideProject.GALE.service.planner.PlannerService;
-import com.SideProject.GALE.util.kakaoMap.KakaoMapApi;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,63 +34,63 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping(produces = "application/json")
 public class PlannerController {
-	private final ResponseService responseService;
 	private final PlannerService plannerService;
-	
-	@PostMapping("/planner/test")
-	public void test()
-	{
-		KakaoMapApi api = new KakaoMapApi();
-		
-		api.category();
-	}
-	
-	@PostMapping("/planner/{idx}")
-	public ResponseEntity Read(@AuthenticationPrincipal TokenDto tokenDto, @RequestBody PlannerDto plannerDto, @RequestBody List<PlannerDetailsDto> listPlannerDetailsDto)
-	{
-		try {
-			plannerService.Write(plannerDto,listPlannerDetailsDto);
-		} catch (Exception ex) {
-			return  responseService.CreateBaseEntity(HttpStatus.SERVICE_UNAVAILABLE, null, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "서버에서 제대로 처리되지 않았습니다.");
-		}
-		
-		return responseService.CreateBaseEntity(HttpStatus.OK, null, ResponseStatusCodeMsg.SUCCESS, "여행 기획이 성공적으로 저장되었습니다.");
-	}
+	private final ResponseService responseService;
+	private final Logger logger = LoggerFactory.getLogger(UserController.class);
 	
 	
+	
+	/* [플래너 작성] */
 	@PostMapping("/planner")
-	public ResponseEntity Write(@AuthenticationPrincipal TokenDto tokenDto, @RequestBody PlannerDto plannerDto, @RequestBody List<PlannerDetailsDto> listPlannerDetailsDto)
+	public ResponseEntity<?> Write(HttpServletRequest request, @RequestBody PlannerWriteRequestDto requestDto)
 	{
-		
-		if(tokenDto.isSucessLogin() == false)
-			return responseService.CreateBaseEntity(HttpStatus.UNAUTHORIZED, null, ResponseStatusCodeMsg.Board.FAIL_UNAUTHORIZED, "잘못된 접근이거나 로그인 되지 않았습니다.");
 
-		//Email Setting
-		plannerDto.setEmail(tokenDto.getEmail());
+		plannerService.Write(request, requestDto.getPlanner(), requestDto.getListPlannerDetails());
 		
-		try {
-			plannerService.Write(plannerDto,listPlannerDetailsDto);
-		} catch (Exception ex) {
-			return  responseService.CreateBaseEntity(HttpStatus.SERVICE_UNAVAILABLE, null, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "서버에서 제대로 처리되지 않았습니다.");
-		}
-		
-		return responseService.CreateBaseEntity(HttpStatus.OK, null, ResponseStatusCodeMsg.SUCCESS, "여행 기획이 성공적으로 저장되었습니다.");
+		return responseService.Create(null, ResCode.SUCCESS, "여행 기획이 성공적으로 저장되었습니다.");
 	}
 	
-	@DeleteMapping("/planner/{idx}")
-	public ResponseEntity Delete(@AuthenticationPrincipal TokenDto tokenDto, @PathVariable int idx)
+	
+	
+	/* [모든 플래너 간략히 가져오기] */
+	@GetMapping("/planner/all") //마이페이지의 전체적인 플래너 목록
+	public ResponseEntity<?> GetAllPlannerList(HttpServletRequest request) 
 	{
-		if(tokenDto.isSucessLogin() == false)
-			return responseService.CreateBaseEntity(HttpStatus.UNAUTHORIZED, null, ResponseStatusCodeMsg.Board.FAIL_UNAUTHORIZED, "잘못된 접근이거나 로그인 되지 않았습니다.");
+		List<GetAllListPlannerDto> data = plannerService.GetAllPlannerList(request);
 		
-		try {
-			plannerService.Delete(tokenDto, idx);
-		} catch (CustomRuntimeException ex) {
-			return  responseService.CreateBaseEntity(ex.getHttpStatus(), null, ex.getCode(), ex.getMessage());			
-		} catch (Exception ex) {
-			return  responseService.CreateBaseEntity(HttpStatus.SERVICE_UNAVAILABLE, null, ResponseStatusCodeMsg.FAIL_SERVICE_UNAVAILABLE, "서버에서 제대로 처리되지 않았습니다.");			
-		}
+        HashMap<String, List<GetAllListPlannerDto>> responseData = new HashMap<>();
+        for(GetAllListPlannerDto obj : data)
+        	responseData.put("content", data);
+        
+        JSONObject resultObj = new JSONObject(responseData);
+		return responseService.CreateList(null, ResCode.SUCCESS, null, resultObj);
+	}
+	
+	
+	
+	/* [특정 플래너 클릭했을때 특정 플래너의 day별 리스트 정보] */
+	@GetMapping("/planner")
+	public ResponseEntity<?> Read(HttpServletRequest request, @RequestParam int planner_number) 
+	{
+		List<PlannerReadDetailsDto> getQueryData = plannerService.Read(request,planner_number);
 		
-		return responseService.CreateBaseEntity(HttpStatus.OK, null, ResponseStatusCodeMsg.SUCCESS, "여행 기획이 성공적으로 삭제되었습니다.");
+        MultiValueMap<String, Object> multiValueMap = new LinkedMultiValueMap<>();
+        for(PlannerReadDetailsDto obj : getQueryData)
+	        multiValueMap.add("content", obj);
+        
+		JSONObject resultObj = new JSONObject(multiValueMap);
+
+		return responseService.CreateList(null, ResCode.SUCCESS, null, resultObj);
+	}
+	
+	
+	
+	
+	@DeleteMapping("/planner/{planner_number}")
+	public ResponseEntity<?> Delete(HttpServletRequest request, @PathVariable int planner_number)
+	{
+		plannerService.Delete(request, planner_number);
+		
+		return responseService.Create(null, ResCode.SUCCESS, "여행 기획이 성공적으로 삭제되었습니다.");
 	}
 }

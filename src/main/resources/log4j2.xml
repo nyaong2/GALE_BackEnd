@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn">
+    <Properties>
+        <Property name="FILE_LOG_PATTERN">[%d{yyyy-MM-dd_HH:mm:ss} 'Method: %M' : 'RequestIp: %X{RequestIp}' : 'trxId : %X{TrxId}' : 'UserId: %X{UserId}'] %level [%thread] [%logger:%line] :: [MSG : %msg]%n</Property>
+        <Property name="MVC_LOG_PATTERN">[%d{yyyy-MM-dd_HH:mm:ss} 'Method: %M' : 'RequestIp: %X{RequestIp}' : 'trxId : %X{TrxId}' : 'UserId: %X{UserId}']  :: [MSG : %msg]%n</Property>
+    </Properties>
+
+    <Appenders>
+    
+        <!-- Console Appender -->
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${sys:FILE_LOG_PATTERN}" />
+        </Console>
+        <Console name="console_mvc" target="SYSTEM_OUT">
+            <PatternLayout pattern="${sys:MVC_LOG_PATTERN}" />
+        </Console>        
+        
+        <RollingFile name="File"
+                     fileName="logs/application.log" 
+                     filePattern="logs/application_%d{yyyy-MM-dd-hh-mm}.log.">
+                     <!-- [fileName = 서버 실행시 저장되는 파일명] [filePattern = 서버종료시 여태까지 저장된 로그파일 명을 지정한대로 변경. -->
+            <PatternLayout pattern="${sys:FILE_LOG_PATTERN}" />
+            <Policies> <!-- 롤링되는 로그파일 정책 설정. -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="logs" maxDepth="1">
+                    <IfAccumulatedFileCount exceeds="20"/> <!--최대 로그파일 개수 -->
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+    </Appenders>
+
+    <Loggers>
+        <Logger name="org.springframework.web" level="info">
+            <AppenderRef ref="console" />
+        </Logger>
+        <Logger name="org.springframework.security" level="info">
+            <AppenderRef ref="console" />
+        </Logger>
+        <Logger name="org.springframework.boot.SpringApplication" level="info">
+            <AppenderRef ref="console" />
+        </Logger>
+        <Logger name="org.springframework.boot.diagnostics.LoggingFailureAnalysisReporter" level="debug">
+            <AppenderRef ref="console" />
+        </Logger>
+        
+        <Logger name="com.SideProject.GALE.controller" level="info">
+            <AppenderRef ref="File" />
+            <AppenderRef ref="console_mvc" />
+        </Logger>
+        <Logger name="com.SideProject.GALE.service" level="info">
+            <AppenderRef ref="File" />
+            <AppenderRef ref="console_mvc" />
+        </Logger>
+
+        <Root level="info"> <!-- level을 기준으로 그 기준의 이상 로그메시지만 출력 / 저장 -->
+            <AppenderRef ref="File"/>
+        </Root>
+    </Loggers>
+</Configuration>
