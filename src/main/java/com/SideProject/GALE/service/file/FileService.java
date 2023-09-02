@@ -37,12 +37,106 @@ public class FileService {
 	@Value("${spring.servlet.multipart.location}") //Value로 주입받는 매개변수는 그 자체로 final 값으로 간주함.
 	private String basicFolderLocation; // Path : [C:\GALE]
 	
-	private final String parentFolderName_Board = "Board";
-	private final String parentFolderName_Board_Review = "Review";
+	private final String parentFolderName_Board = "board";
+	private final String parentFolderName_Board_Review = "review";
 	
 	private final List<String> allowImageExtension = Arrays.asList(
 			"jpg", "jpeg", "png", "bmp");
 	
+	@Value("${server.fixed-ip}")
+	private String serverIp;
+	@Value("${server.port}")
+	private String serverPort;
+	
+	
+	public String CreateUserProfileImageNameUrl(String imageProfileName)
+	{
+		if(StringUtils.hasText(imageProfileName) == false)
+			return null;
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("http://")
+			.append(serverIp)
+			.append(":")
+			.append(serverPort)
+			.append("/file/download/")
+			.append("profile")
+			.append("imageProfileName=")
+			.append(imageProfileName);
+		
+		return sb.toString();
+	}
+	
+	
+	public String CreateArrayBoardImageFileString(int board_Number, String arrayImageFileName)
+	{
+		if(StringUtils.hasText(arrayImageFileName) == false)
+			return null;
+		
+		String[] taskImageFileNameString = arrayImageFileName.split(",");
+		
+		StringBuilder resultStr = new StringBuilder();
+		
+		for(int idx = 0; idx < taskImageFileNameString.length ; idx++)
+		{
+			
+			// 값이 String으로 null이라면 null값 추가해서 프론트에서 null값인 경우 작업하지 않도록 처리.
+			// (sql에 String으로 null 준 이유는 list에서 값이 없으면 key값이 추가가 안되는 경우가 있어서 String으로 null 반환처리함.)
+			if(taskImageFileNameString[idx].equals("null"))
+			{
+				resultStr.append("null");			
+				continue;
+			}
+			
+			StringBuilder sb = new StringBuilder();
+			sb.append("http://")
+				.append(serverIp)
+				.append(":")
+				.append(serverPort)
+				.append("/file/download/")
+				.append(parentFolderName_Board)
+				.append("?board_Number=")
+				.append(board_Number)
+				.append("&fileName=")
+				.append(taskImageFileNameString[idx]);
+			taskImageFileNameString[idx] = sb.toString();
+			
+			if(idx > 0)
+				resultStr.append(", ");
+			
+			resultStr.append(sb.toString());			
+		}
+		
+		return resultStr.toString();
+	}
+	
+	public String CreateArrayBoardReviewImageFileString(int board_Review_Number, String arrayImageFileName)
+	{
+		if(StringUtils.hasText(arrayImageFileName) == false)
+			return null;
+		
+		String[] taskImageFileNameString = arrayImageFileName.split(",");
+		
+		for(int idx = 0; idx < taskImageFileNameString.length ; idx++)
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append("http://")
+				.append(serverIp)
+				.append(":")
+				.append(serverPort)
+				.append("/file/download/")
+				.append(parentFolderName_Board)
+				.append("/")
+				.append(parentFolderName_Board_Review)
+				.append("?board_Review_Number=")
+				.append(board_Review_Number)
+				.append("&fileName=")
+				.append(taskImageFileNameString[idx]);
+			taskImageFileNameString[idx] = sb.toString();
+		}
+		
+		return Arrays.toString(taskImageFileNameString);
+	}
 	
 	@Transactional(propagation = Propagation.NESTED)
 	public void Upload_BoardImages(int board_Number, List<MultipartFile> imageFileList) // Board
@@ -119,15 +213,12 @@ public class FileService {
 			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}
 	}
-	
-	
-	
+
 	public boolean Remove_BoardImagesFolder(int board_number) 
 	{
 		String saveBoardPath = String.format("%s\\%s\\%s", basicFolderLocation, parentFolderName_Board, board_number);
 		return fileUtils.ForceFolderDelete(saveBoardPath);
 	}
-	
 	
 	
 	@Transactional(propagation = Propagation.NESTED)
@@ -212,153 +303,43 @@ public class FileService {
 		return fileUtils.ForceFolderDelete(saveBoardReviewPath);
 	}
 	
-//	public boolean SaveProfile(MultipartFile profile) throws Exception
-//	{
-//		String fileName = StringUtils.cleanPath(profile.getOriginalFilename());
-//		String fileExtension = fileName.substring(fileName.lastIndexOf("."));
-//		
-//		// Support Extension Checked
-//		boolean allowExtensionCheck = false;
-//		for(String ext : allowImageExtension)
-//		{
-//			if(fileExtension.toLowerCase().contains(ext))
-//				allowExtensionCheck=true;
-//		}
-//		
-//		if(!allowExtensionCheck)
-//			throw new DenyFileExtensionException("지원하지 않는 확장자입니다. ['" + fileExtension + "']");
-//		
-//		
-//		try {
-//			String hashFileName = this.ExtractFileHashSHA256(saveFolderLocation + "\\"+ fileName);
-//
-//			profile.transferTo(Paths.get(saveFolderLocation + "\\" + hashFileName));
-//			
-//			
-//		} catch (Exception e) {
-//			System.out.println(e);
-//			throw new FileUploadException( "['" + fileName + "'] 파일을 업로드 하지 못했습니다. 다시 시도 해주세요.");
-//		}
-//		
-//		
-//		Path oldPath = Paths.get(saveFolderLocation + "\\" + fileName);
-//		Path hashPath = Paths.get(saveFolderLocation + "\\" + hashFileName + fileExtension);
-//		
-//		File file = new File(hashPath.toUri());
-//		if(file.exists())
-//		{
-//			File tempFile = new File(oldPath.toUri());
-//			tempFile.delete();
-//			throw new FileUploadDuplicateFileException( "['" + fileName + "'] 파일은 이미 업로드 되어있습니다.");	
-//		}
-//		
-//		Files.move( oldPath, hashPath);
-//		
-//		return true;
-//	}
-//	
-//	
-//	public boolean SaveProfile(MultipartFile profile) throws Exception
-//	{
-//		String fileName = StringUtils.cleanPath(profile.getOriginalFilename());
-//		String fileExtension = fileName.substring(fileName.lastIndexOf("."));
-//		
-//		// Support Extension Checked
-//		boolean allowExtensionCheck = false;
-//		for(String ext : allowImageExtension)
-//		{
-//			if(fileExtension.toLowerCase().contains(ext))
-//				allowExtensionCheck=true;
-//		}
-//		
-//		if(!allowExtensionCheck)
-//			throw new DenyFileExtensionException("지원하지 않는 확장자입니다. ['" + fileExtension + "']");
-//		
-//		
-//		try {
-//			String hashFileName = this.ExtractFileHashSHA256(saveFolderLocation + "\\"+ fileName);
-//
-//			profile.transferTo(Paths.get(saveFolderLocation + "\\" + hashFileName));
-//			
-//			
-//		} catch (Exception e) {
-//			System.out.println(e);
-//			throw new FileUploadException( "['" + fileName + "'] 파일을 업로드 하지 못했습니다. 다시 시도 해주세요.");
-//		}
-//		
-//		
-//		Path oldPath = Paths.get(saveFolderLocation + "\\" + fileName);
-//		Path hashPath = Paths.get(saveFolderLocation + "\\" + hashFileName + fileExtension);
-//		
-//		File file = new File(hashPath.toUri());
-//		if(file.exists())
-//		{
-//			File tempFile = new File(oldPath.toUri());
-//			tempFile.delete();
-//			throw new FileUploadDuplicateFileException( "['" + fileName + "'] 파일은 이미 업로드 되어있습니다.");	
-//		}
-//		
-//		Files.move( oldPath, hashPath);
-//		
-//		return true;
-//	}
 		
 	@SuppressWarnings("unused")
-	public File Download_BoardImage(int board_Number, int order_Number)
-	{		
+	public File Download_BoardImage(int board_Number, String fileName)
+	{
 		File storedFile = null;
-		try {
-			// 1. 정보 가져오기
-			FileDto dbQueryDto = new FileDto();
-			dbQueryDto.setBoard_number(board_Number);
-			dbQueryDto.setOrder_number(order_Number);
-			dbQueryDto = fileMapper.Download_Board_ImageData(dbQueryDto);
-			
-			if(dbQueryDto == null)
-				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARD);
-			if(StringUtils.hasText(dbQueryDto.getStored_file_name()) == false)
-				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARD);
 		
-			String saveFilePath = String.format("%s\\%s\\%s\\%s", // 파일 저장폴더위치 + 유형 +  (PK) Number + Stored FileName
-					basicFolderLocation, parentFolderName_Board,  dbQueryDto.getBoard_number(), dbQueryDto.getStored_file_name()); 
+		String saveFilePath = String.format("%s\\%s\\%s\\%s", // 파일 저장폴더위치 + 유형 + Category +  (PK) Number + Stored FileName
+				basicFolderLocation, parentFolderName_Board, board_Number, fileName); 
 
+		try 
+		{
 			// 2. 파일 가져오기
 			storedFile = new File(saveFilePath);
 			
-			if(storedFile == null)
+			if(storedFile.exists() == false)
 				throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
-			
-		}  catch (CustomRuntimeException ex) {
+
+		} catch (CustomRuntimeException ex) {
 			throw ex;
 		} catch (Exception ex) {
 			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}
 		
+		
 		return storedFile;
 	}
 	
-	
 	@SuppressWarnings("unused")
-	public File Download_BoardReviewImage(int board_Review_Number, int order_Number)
+	public File Download_BoardReviewImage(int board_Review_Number, String fileName)
 	{		
 		File storedFile = null;
 		
+		String saveFilePath = String.format("%s\\%s\\%s\\%s", // 파일 저장폴더위치 + 유형 + Category +  (PK) Number + Stored FileName
+				basicFolderLocation, parentFolderName_Board_Review, board_Review_Number, fileName); 
+
 		try 
 		{
-			// 1. 정보 가져오기
-			FileReviewDto dbQueryDto = new FileReviewDto();
-			dbQueryDto.setBoard_review_number(board_Review_Number);
-			dbQueryDto.setOrder_number(order_Number);
-			dbQueryDto = fileMapper.Download_Board_Review_ImageData(dbQueryDto);
-			
-			if(dbQueryDto == null)
-				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARDREVIEW);
-			if(StringUtils.hasText(dbQueryDto.getStored_file_name()) == false)
-				throw new CustomRuntimeException(ResCode.NOT_FOUND_FILE_BOARDREVIEW);
-			
-			String saveFilePath = String.format("%s\\%s\\%s\\%s", // 파일 저장폴더위치 + 유형 + Category +  (PK) Number + Stored FileName
-					basicFolderLocation, parentFolderName_Board_Review, dbQueryDto.getBoard_review_number(), dbQueryDto.getStored_file_name()); 
-
 			// 2. 파일 가져오기
 			storedFile = new File(saveFilePath);
 			

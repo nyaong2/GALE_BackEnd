@@ -8,6 +8,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class FileReviewDto {
+	private int file_review_number;
 	private int board_review_number;
 	private String origin_file_name;
 	private String stored_file_name;

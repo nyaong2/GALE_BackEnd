@@ -39,11 +39,11 @@ public class FileController {
 	
 	
 	@GetMapping(value = "/download/board")
-	public ResponseEntity<?> downloadBoardImages(@RequestParam int board_Number, @RequestParam int order_Number) {
+	public ResponseEntity<?> downloadBoardImages(@RequestParam int board_Number, @RequestParam String fileName) {
 		//https://jaehoney.tistory.com/277
 		// byte[]로 반환은 서버에서 파일을 읽은 데이터를 메모리에 올려야 하기 때문에 Resource 방식으로 이용.
 		
-		File imageFile = fileService.Download_BoardImage(board_Number, order_Number);
+		File imageFile = fileService.Download_BoardImage(board_Number, fileName);
 		
 		InputStream inputStream;
 		try {
@@ -62,9 +62,9 @@ public class FileController {
 	
 	
 	@GetMapping(value = "/download/board/review")
-	public ResponseEntity<?> downloadBoardReviewImage(@RequestParam int board_Review_Number, @RequestParam int order_Number)
+	public ResponseEntity<?> downloadBoardReviewImage(@RequestParam int board_Review_Number, @RequestParam String fileName)
 	{
-		File imageFile = fileService.Download_BoardReviewImage(board_Review_Number, order_Number);
+		File imageFile = fileService.Download_BoardReviewImage(board_Review_Number, fileName);
         
 		InputStream inputStream;
 		try {

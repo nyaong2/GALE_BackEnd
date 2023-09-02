@@ -14,7 +14,7 @@ import lombok.Setter;
 @NoArgsConstructor // 파라미터 없는 기본 생성자 생성
 public class BoardDto {
 	public int board_number;
-	public int board_category;
+	public int board_category_number;
 	public String userid;
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "Asia/Seoul")
 	public LocalDateTime regdate;

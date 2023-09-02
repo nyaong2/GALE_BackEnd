@@ -1,5 +1,7 @@
-  #!-- Port 
-server.port: 7777
+  #!-- Port
+server:
+  fixed-ip: 175.212.160.106
+  port: 7777
 
 
 #!-- DataBase [MariaDB]

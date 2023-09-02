@@ -23,24 +23,24 @@
 	
 	
 	<insert id="Upload_Board" parameterType="java.util.Map">
-		INSERT INTO files (board_number, origin_file_name, stored_file_name, order_number)
+		INSERT INTO file (board_number, origin_file_name, stored_file_name, order_number)
 		VALUES
 			<foreach item="item" collection="list" separator=",">
-				( #{item.board_number}, #{item.origin_file_name}, #{item.stored_file_name}, #{item.order_number})
+				(#{item.board_number}, #{item.origin_file_name}, #{item.stored_file_name}, #{item.order_number})
 			</foreach>
 	</insert>
 
 	<insert id="Upload_Board_Review" parameterType="com.SideProject.GALE.model.file.FileReviewDto">
-		INSERT INTO files_review (board_review_number, origin_file_name, stored_file_name, order_number)
+		INSERT INTO file_review (board_review_number, origin_file_name, stored_file_name, order_number)
 		VALUES
 		<foreach item="item" collection="list" separator=",">
-			( #{item.board_review_number}, #{item.origin_file_name}, #{item.stored_file_name}, #{item.order_number} )
+			(#{item.board_review_number}, #{item.origin_file_name}, #{item.stored_file_name}, #{item.order_number} )
 		</foreach>
 	</insert>
 	
 	<select id="Download_Board_ImageData" parameterType="com.SideProject.GALE.model.file.FileDto" resultType="com.SideProject.GALE.model.file.FileDto">
 		SELECT *
-		FROM files
+		FROM file
 		WHERE
 		board_number = #{board_number}
 		AND order_number = #{order_number}
@@ -49,7 +49,7 @@
 	
 	<select id="Download_Board_Review_ImageData" parameterType="com.SideProject.GALE.model.file.FileReviewDto" resultType="com.SideProject.GALE.model.file.FileReviewDto">
 		SELECT *
-		FROM files_review
+		FROM file_review
 		WHERE 
 		board_review_number = #{board_review_number}
 		AND order_number = #{order_number}

@@ -106,18 +106,6 @@ public class UserController {
 		 return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject().put("accessToken",token));
 	}
 	
-	
-	@PatchMapping(value= "/profile")
-	@Transactional
-	public ResponseEntity<?> ProfileUpdate(HttpServletRequest request, @RequestBody UserProfileRequestDto profileDto)
-	{
-		userService.ProfileUpdate(request, profileDto);
-
-		 return responseService.Create(null, ResCode.SUCCESS, "회원 정보가 정상적으로 수정되었습니다.");
-	}
-	
-		
-	
 }
 
 

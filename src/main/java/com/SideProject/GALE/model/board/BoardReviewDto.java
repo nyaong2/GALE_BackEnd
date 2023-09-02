@@ -15,9 +15,5 @@ public class BoardReviewDto {
 	private String userid;
 	private LocalDateTime regdate;
 	private String content;
-	private int satisfaction;
-	private int service;
-	private int price;
-	private int congestion;
-	private int accessibility;
+	private int average;
 }

@@ -78,8 +78,6 @@ public class ResponseService {
 	
 	public ResponseEntity<?> CreateImage(HttpHeaders httpHeaders,  ResCode resCode, InputStreamResource imageFile)
 	{
-
-
 		return ResponseEntity
 				.status(resCode.getHttpStatus())
 				.headers(httpHeaders)

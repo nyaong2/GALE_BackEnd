@@ -7,14 +7,16 @@ import org.apache.ibatis.annotations.Mapper;
 
 import com.SideProject.GALE.model.board.BoardDto;
 import com.SideProject.GALE.model.board.BoardReadDto;
+import com.SideProject.GALE.model.board.BoardReadListDto;
+import com.SideProject.GALE.model.board.BoardReviewConciseReadDto;
+import com.SideProject.GALE.model.board.BoardReviewDetailReadDto;
 import com.SideProject.GALE.model.board.BoardReviewDto;
-import com.SideProject.GALE.model.board.BoardReviewReadDto;
 import com.SideProject.GALE.model.board.ReportReviewDto;
 
 @Mapper
 public interface BoardMapper {
 	
-	List<BoardDto> GetCategoryBoardData(int board_Category);
+	List<BoardReadListDto> GetCategoryBoardDataList(Map<String,Integer> map);
 	
 	
 	//Board
@@ -31,9 +33,10 @@ public interface BoardMapper {
 	//Board_Review
 	Integer Write_Review(BoardReviewDto boardReviewDto);
 	
-	List<BoardReviewDto> Read_BoardReviewPagingList(Map<String,Integer> map);
+	List<BoardReviewConciseReadDto> Read_BoardReviewPagingList(Map<String,Object> map);
+	List<BoardReviewConciseReadDto> Read_BoardReivewConciseList(int board_Number);
 	String GetBoardReviewUserid(int board_Review_Number);
-	BoardReviewReadDto Read_Review(int board_Review_number);
+	BoardReviewDetailReadDto Read_Review(int board_Review_number);
 
 	int Delete_Review(int board_Review_Number);
 	

@@ -1,5 +1,6 @@
 package com.SideProject.GALE.controller.board;
 
+import java.util.HashMap;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -24,8 +25,10 @@ import com.SideProject.GALE.enums.ResCode;
 import com.SideProject.GALE.exception.CustomRuntimeException_Msg;
 import com.SideProject.GALE.model.board.BoardDto;
 import com.SideProject.GALE.model.board.BoardReadDto;
-import com.SideProject.GALE.model.board.BoardReviewDto;
-import com.SideProject.GALE.model.board.BoardReviewReadDto;
+import com.SideProject.GALE.model.board.BoardReadListDto;
+import com.SideProject.GALE.model.board.BoardReviewConciseReadDto;
+import com.SideProject.GALE.model.board.BoardReviewDetailDto;
+import com.SideProject.GALE.model.board.BoardReviewDetailReadDto;
 import com.SideProject.GALE.model.board.ReportReviewDto;
 import com.SideProject.GALE.service.board.BoardService;
 import com.SideProject.GALE.service.file.FileService;
@@ -48,13 +51,16 @@ public class BoardController {
 	
 	/* [특정 카테고리 목록 다 가져오기] */
 	@GetMapping("/board/list")
-	public ResponseEntity<?> GetList(@RequestParam int board_Category)
+	public ResponseEntity<?> GetRisingCategoryList(
+			@RequestParam int board_Category_Number,
+			@RequestParam int currentPage)
 	{
-		List<BoardDto> dbList = boardService.GetList(board_Category);
+		List<BoardReadListDto> queryRisingBoardList = boardService.GetRisingCategoryList(board_Category_Number, currentPage);
 
-		return (dbList.size() > 0) ? 
-				responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject(dbList))
-			:	responseService.Create(null, ResCode.NOT_FOUND, "가져올 데이터가 없습니다.");
+		HashMap<String, List<BoardReadListDto>> convertResponseListData = new HashMap<>();
+        	convertResponseListData.put("list", queryRisingBoardList);
+		
+		return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject(convertResponseListData));
 	}
 	
 	
@@ -139,16 +145,16 @@ public class BoardController {
 	@PostMapping("/board/review")
 	@Transactional
 	public ResponseEntity<?> Write_Review(HttpServletRequest request, 
-			@RequestPart("data") BoardReviewDto boardReviewDto,
+			@RequestPart("data") BoardReviewDetailDto boardReviewDetailDto,
 			@RequestPart(value = "imageFile", required = false)  List<MultipartFile> listImageFile) // required 기본값 true [true = 값이 무조건 있어야 함.] [false = null도 허용]
 	{
 		
 		//1. 리뷰 쓰기
-		boardService.Write_Review(request, boardReviewDto);
+		boardService.Write_Review(request, boardReviewDetailDto);
 			
 		
-		//3번 하기전 idx 가져오기. [DB 저장에 필요함]
-		int board_Review_Number = boardReviewDto.getBoard_review_number(); //getIdx가 가능한 이유 : insert문에 useGeneratedKeys="true" keyProperty="idx"를 선언해둬서 insert 후에 된 idx값이 들어옴.
+		//2번 하기전 idx 가져오기. [파일 저장할 때 DB 저장에 board_Reivew_Number 값 필요함]
+		int board_Review_Number = boardReviewDetailDto.getBoard_review_number(); //getIdx가 가능한 이유 : insert문에 useGeneratedKeys="true" keyProperty="idx"를 선언해둬서 insert 후에 된 idx값이 들어옴.
 		if(board_Review_Number < 1)
 		{
 			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
@@ -173,16 +179,19 @@ public class BoardController {
 	
 	
 	/* [여행게시물 리뷰 가져오기] */
-	@GetMapping("/board/review/page")
+	@GetMapping("/board/review/list")
 	public ResponseEntity<?> Read_BoardReviewPagingList(HttpServletRequest request, 
 			@RequestParam int board_Number,
-			@RequestParam int review_CurrentPage
+			@RequestParam String sortType,
+			@RequestParam String orderType,
+			@RequestParam int currentPage
 			)
 	{
-		
-		List<BoardReviewDto> reviewListDto = boardService.Read_BoardReviewPagingList(board_Number, review_CurrentPage);
-		return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject(reviewListDto));
-		
+		List<BoardReviewConciseReadDto> reviewListDto = boardService.Read_BoardReviewPagingList(board_Number, sortType, orderType, currentPage);
+		HashMap<String, List<BoardReviewConciseReadDto>> convertResponseListData = new HashMap<>();
+    	convertResponseListData.put("list", reviewListDto);
+    	
+		return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject(convertResponseListData));
 	}
 
 	
@@ -192,7 +201,7 @@ public class BoardController {
 			@RequestParam int board_Review_Number)
 	{
 		
-		BoardReviewReadDto reviewReadDto = boardService.Read_Review(board_Review_Number);
+		BoardReviewDetailReadDto reviewReadDto = boardService.Read_Review(board_Review_Number);
 		return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject(reviewReadDto));
 				
 	}
