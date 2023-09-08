@@ -9,20 +9,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.SideProject.GALE.components.response.ResponseService;
 import com.SideProject.GALE.enums.ResCode;
 import com.SideProject.GALE.model.user.LoginDto;
-import com.SideProject.GALE.model.user.UserProfileRequestDto;
 import com.SideProject.GALE.model.user.SignupDto;
+import com.SideProject.GALE.model.user.UserProfileRequestDto;
+import com.SideProject.GALE.service.file.FileService;
 import com.SideProject.GALE.service.user.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,7 @@ public class UserController {
  
 	//12-01 https://onejunu.tistory.com/138
 	private final UserService userService;
+	private final FileService fileService;
 	private final ResponseService responseService;
 	
 	private final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -104,6 +108,34 @@ public class UserController {
 		String token =  userService.RegenerationAccessToken(request);
 
 		 return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject().put("accessToken",token));
+	}
+	
+	
+	@PatchMapping(value= "/profile")
+	@Transactional
+	public ResponseEntity<?> ProfileInformationUpdate(HttpServletRequest request, @RequestBody UserProfileRequestDto profileDto)
+	{
+		userService.ProfileUpdate(request, profileDto);
+
+		 return responseService.Create(null, ResCode.SUCCESS, "회원 정보가 정상적으로 수정되었습니다.");
+	}
+	
+	@PostMapping(value= "/profile/image")
+	@Transactional
+	public ResponseEntity<?> ProfileImageUpdate(HttpServletRequest request, @RequestPart MultipartFile profileImageFile)
+	{
+		fileService.Update_ProfileImage(request, profileImageFile);
+
+		 return responseService.Create(null, ResCode.SUCCESS, "프로필 사진이 정상적으로 등록됐습니다.");
+	}
+	
+	@DeleteMapping(value= "/profile/image")
+	@Transactional
+	public ResponseEntity<?> ProfileImageUpdate(HttpServletRequest request)
+	{
+		fileService.Delete_ProfileImage(request);
+		
+		 return responseService.Create(null, ResCode.SUCCESS, "프로필 사진이 삭제됐습니다.");
 	}
 	
 }

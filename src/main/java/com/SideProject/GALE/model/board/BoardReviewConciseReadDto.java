@@ -11,6 +11,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class BoardReviewConciseReadDto extends BoardReviewDto {
 	private String userNickname;
-	private String userImageProfileUrl;
+	private String userProfileImageUrl;
 	private String imageArrayUrl;
 }

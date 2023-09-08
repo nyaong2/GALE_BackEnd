@@ -231,4 +231,24 @@ public class BoardController {
 	}
 	
 	
+	
+	// [부가기능] ---------------------------------------------------------------------------------
+	@PostMapping("/board/wishplace")
+	public ResponseEntity<?> AddWishPlace(HttpServletRequest request, 
+			@RequestParam int board_Number)
+	{
+		boardService.AddWishPlace(request, board_Number);
+		
+		return responseService.Create(null, ResCode.SUCCESS, "위시플레이스가 정상적으로 등록됐습니다.");
+	}
+	
+	@DeleteMapping("/board/wishplace/{board_Number}")
+	public ResponseEntity<?> DelWishPlace(HttpServletRequest request, 
+			@PathVariable int board_Number)
+	{
+		boardService.DelWishPlace(request, board_Number);
+		
+		return responseService.Create(null, ResCode.SUCCESS, "위시플레이스가 정상적으로 제거됐습니다.");
+	}
+	
 }

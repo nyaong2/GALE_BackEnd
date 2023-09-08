@@ -47,10 +47,10 @@ public class BoardService {
 			if(list.size() < 1)
 				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_DATA);
 			
-			for(BoardReadListDto readdto : list) // 파일명을 가지고 이미지 주소 url로 변환
+			for(BoardReadListDto readDto : list) // 파일명을 가지고 이미지 주소 url로 변환
 			{
-				String convertFirstImageUrl = 	fileService.CreateArrayBoardImageFileString(readdto.getBoard_number(), readdto.getFirstImageUrl());
-				readdto.setFirstImageUrl( (StringUtils.hasText(convertFirstImageUrl)) ? convertFirstImageUrl : "null" );
+				String convertFirstImageUrl = 	fileService.CreateArrayBoardImageFileString(readDto.getBoard_number(), readDto.getFirstImageUrl());
+				readDto.setFirstImageUrl( (StringUtils.hasText(convertFirstImageUrl)) ? convertFirstImageUrl : "null" );
 			}
 			
 		} catch (CustomRuntimeException ex) {
@@ -62,29 +62,6 @@ public class BoardService {
 		return list;
 	}
 
-//	public Integer GetIndex(BoardDto parameter_BoardDto)
-//	{
-//		Integer queryIdx = null;
-//		try {
-//			queryIdx = boardMapper.GetIndex(parameter_BoardDto);
-//		} catch(Exception ex) {
-//			queryIdx = null;
-//			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
-//		};		
-//		return queryIdx;
-//	}
-
-//	public Integer GetIndex(BoardReviewDto parameter_BoardReviewDto)
-//	{
-//		Integer queryIdx = null;
-//		try {
-//			queryIdx = boardMapper.GetIndex_Review(parameter_BoardReviewDto);
-//		} catch(Exception ex) {
-//			queryIdx = null;
-//			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
-//		};		
-//		return queryIdx;
-//	}
 
 	@Transactional(propagation = Propagation.NESTED)
 	public void Write(HttpServletRequest request, BoardDto boardDto) {
@@ -96,9 +73,8 @@ public class BoardService {
 			boardDto.setRegdate(LocalDateTime.now().withNano(0)); // 시간 설정. Second로 해야함. MilliSecond로 하면, 나노초때문에 idx
 																	// select문 날릴 시 null값 뜸. db에서 그 nano초를 설정하거나
 																	// Seconds로 설정해야 함.
-			int result = boardMapper.Write(boardDto);
-			
-			if(result != 1)
+
+			if(boardMapper.Write(boardDto) != 1)
 				throw new Exception();
 		} catch (Exception ex) {
 			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
@@ -122,19 +98,7 @@ public class BoardService {
 			//파일 url 작업
 			String convertImageUrlAddress = fileService.CreateArrayBoardImageFileString(board_Number, queryBoardDto.getImageArrayFileName());
 			queryBoardDto.setImageArrayFileName(convertImageUrlAddress);
-			
-			//보드의 리뷰 목록 가져오기
-			List<BoardReviewConciseReadDto> reviewConciseList = boardMapper.Read_BoardReivewConciseList(board_Number);
-			for(BoardReviewConciseReadDto conciseDto : reviewConciseList)
-			{
-				String convertImageUrlAddress_Review = fileService.CreateArrayBoardReviewImageFileString(conciseDto.getBoard_review_number(), conciseDto.getImageArrayUrl());
-				String convertProfileImageUrl = fileService.CreateUserProfileImageNameUrl(conciseDto.getUserImageProfileUrl());
-				conciseDto.setImageArrayUrl( (StringUtils.hasText(convertImageUrlAddress_Review)) ? convertImageUrlAddress_Review : "null" );
-				conciseDto.setUserImageProfileUrl( (StringUtils.hasText(convertProfileImageUrl)) ? convertProfileImageUrl : "null" );
-			}
-			
-			queryBoardDto.setReviewList(reviewConciseList);
-			
+						
 			queryBoardDto.setAllAverage( //따로 Service에서 작업한 이유 : sql로 작업하면 한번더 값을 호출하기 때문에 속도 저하가 있을 것으로 보여서.
 				(
 						queryBoardDto.getSatisfaction()
@@ -169,8 +133,7 @@ public class BoardService {
 			throw new CustomRuntimeException(ResCode.FORBIDDEN_UNAUTHENTICATED_REQUEST);
 
 		try {
-			int result = boardMapper.Update(boardDto);
-			if(result != 1)
+			if(boardMapper.Update(boardDto) != 1)
 				throw new Exception();
 			
 		} catch (Exception ex) {
@@ -193,11 +156,11 @@ public class BoardService {
 				throw new CustomRuntimeException(ResCode.FORBIDDEN_UNAUTHENTICATED_REQUEST);
 
 			
-			int result = boardMapper.Delete(board_Number);
+			if(boardMapper.Delete(board_Number) < 1)
+				throw new Exception();
+			
 			fileService.Remove_BoardImagesFolder(board_Number);
 			
-			if(result < 1)
-				throw new Exception();
 		} catch (CustomRuntimeException ex) {
 			throw ex;
 		} catch (Exception ex) {
@@ -219,9 +182,8 @@ public class BoardService {
 			boardReviewDetailDto.setRegdate(LocalDateTime.now().withNano(0)); // 시간 설정. Second로 해야함. MilliSecond로 하면, 나노초때문에
 																		// idx select문 날릴 시 null값 뜸. db에서 그 nano초를 설정하거나
 																		// Seconds로 설정해야 함.
-			int result = boardMapper.Write_Review(boardReviewDetailDto);
-			
-			if(result != 1)
+
+			if( boardMapper.Write_Review(boardReviewDetailDto)  != 1)
 				throw new Exception();
 			
 		} catch (Exception ex) {
@@ -249,9 +211,9 @@ public class BoardService {
 			for(BoardReviewConciseReadDto conciseDto : reviewDto)
 			{
 				String convertImageUrlAddress_Review = fileService.CreateArrayBoardReviewImageFileString(conciseDto.getBoard_review_number(), conciseDto.getImageArrayUrl());
-				String convertProfileImageUrl = fileService.CreateUserProfileImageNameUrl(conciseDto.getUserImageProfileUrl());
+				String convertProfileImageUrl = fileService.CreateUserProfileImageNameUrl(conciseDto.getUserProfileImageUrl());
 				conciseDto.setImageArrayUrl( (StringUtils.hasText(convertImageUrlAddress_Review)) ? convertImageUrlAddress_Review : "null" );
-				conciseDto.setUserImageProfileUrl( (StringUtils.hasText(convertProfileImageUrl)) ? convertProfileImageUrl : "null" );
+				conciseDto.setUserProfileImageUrl( (StringUtils.hasText(convertProfileImageUrl)) ? convertProfileImageUrl : "null" );
 			}
 			
 		} catch(CustomRuntimeException ex) {
@@ -272,9 +234,9 @@ public class BoardService {
 				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_REVIEW_DATA);
 			
 			String convertImageUrlAddress_Review = fileService.CreateArrayBoardReviewImageFileString(queryBoardReviewDto.getBoard_review_number(), queryBoardReviewDto.getImageArrayUrl());
-			String convertProfileImageUrl = fileService.CreateUserProfileImageNameUrl(queryBoardReviewDto.getUserImageProfileUrl());
+			String convertProfileImageUrl = fileService.CreateUserProfileImageNameUrl(queryBoardReviewDto.getUserProfileImageUrl());
 			queryBoardReviewDto.setImageArrayUrl( (StringUtils.hasText(convertImageUrlAddress_Review)) ? convertImageUrlAddress_Review : "null" );
-			queryBoardReviewDto.setUserImageProfileUrl( (StringUtils.hasText(convertProfileImageUrl)) ? convertProfileImageUrl : "null" );
+			queryBoardReviewDto.setUserProfileImageUrl( (StringUtils.hasText(convertProfileImageUrl)) ? convertProfileImageUrl : "null" );
 
 			
 		} catch (CustomRuntimeException ex) {
@@ -290,8 +252,6 @@ public class BoardService {
 	@Transactional(propagation = Propagation.NESTED)
 	public void Delete_Review(HttpServletRequest request, int board_review_number) 
 	{
-		int result = 0;
-
 		String queryBoardReviewUserId = boardMapper.GetBoardReviewUserid(board_review_number);
 		if (StringUtils.hasText(queryBoardReviewUserId) == false)
 			throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_REVIEW_DATA);
@@ -301,9 +261,7 @@ public class BoardService {
 			throw new CustomRuntimeException(ResCode.BAD_REQUEST_NOTEQUALS_DATA);
 
 		try {
-			result = boardMapper.Delete_Review(board_review_number);
-			
-			if(result < 1)
+			if(boardMapper.Delete_Review(board_review_number) < 1)
 				throw new Exception();
 			
 			fileService.Remove_BoardReviewImagesFolder(board_review_number);
@@ -322,9 +280,52 @@ public class BoardService {
 			throw new CustomRuntimeException(ResCode.BAD_REQUEST_NOTEQUALS_DATA);
 		try 
 		{
-			int result = boardMapper.Report_Review(reportReviewDto);
-			if (result != 1)
+			if ( boardMapper.Report_Review(reportReviewDto) != 1)
 				 throw new Exception();
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+	}
+	
+	
+	
+	// [부가기능] ---------------------------------------------------------------------------------
+	public void AddWishPlace(HttpServletRequest request, int board_Number)
+	{
+		String userid = jwtProvider.RequestTokenDataParser(request).get("userid").toString();
+		
+		try {
+			Map<String,Object> map = new HashMap<String,Object>();
+			map.put("userid", userid);
+			map.put("board_Number", board_Number);
+
+			if(boardMapper.AddUserWishPlace(map) != 1)
+				throw new Exception();
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+	}
+	
+	
+	
+	public void DelWishPlace(HttpServletRequest request, int board_Number)
+	{
+		String userid = jwtProvider.RequestTokenDataParser(request).get("userid").toString();
+		
+		try {
+			Map<String,Object> map = new HashMap<String,Object>();
+			map.put("userid", userid);
+			map.put("board_Number", board_Number);
+
+			int result = boardMapper.DelUserWishPlace(map);
+			
+			if(result == 0)
+				throw new CustomRuntimeException(ResCode.BAD_REQUEST_BOARD_ALREADYPROCESSED_WISHPLACE);
+			else if (result != 1)
+				throw new Exception();
+			
+		} catch (CustomRuntimeException ex) {
+			throw ex;
 		} catch (Exception ex) {
 			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}

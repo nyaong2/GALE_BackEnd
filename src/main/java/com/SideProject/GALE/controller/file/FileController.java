@@ -3,24 +3,24 @@ package com.SideProject.GALE.controller.file;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.SideProject.GALE.components.io.utils.CustomInputStreamResource;
 import com.SideProject.GALE.components.response.ResponseHeaders;
 import com.SideProject.GALE.enums.ResCode;
 import com.SideProject.GALE.exception.CustomRuntimeException;
-import com.SideProject.GALE.model.file.FileDto;
 import com.SideProject.GALE.service.file.FileService;
 
 import lombok.RequiredArgsConstructor;
@@ -34,9 +34,7 @@ public class FileController {
 	private final FileService fileService;
 	private final com.SideProject.GALE.components.response.ResponseService responseService;
 
-	// upload는 Board에서 처리하기에 따로 처리하지 않음.
-    
-	
+	// 게시물, 게시물 리뷰 upload는 BoardService에서 처리하기에 따로 처리하지 않음.
 	
 	@GetMapping(value = "/download/board")
 	public ResponseEntity<?> downloadBoardImages(@RequestParam int board_Number, @RequestParam String fileName) {
@@ -65,6 +63,26 @@ public class FileController {
 	public ResponseEntity<?> downloadBoardReviewImage(@RequestParam int board_Review_Number, @RequestParam String fileName)
 	{
 		File imageFile = fileService.Download_BoardReviewImage(board_Review_Number, fileName);
+        
+		InputStream inputStream;
+		try {
+			inputStream = new FileInputStream(imageFile);
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
+		}
+		
+		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+		
+		return responseService.CreateImage(
+				ResponseHeaders.DownloadImageHeader(imageFile)
+				, ResCode.SUCCESS
+				, inputStreamResource);
+	}
+	
+	@GetMapping(value = "/download/user/profile")
+	public ResponseEntity<?> downloadUserProfileImage(@RequestParam String fileName)
+	{
+		File imageFile = fileService.Download_UserProfileImage(fileName);
         
 		InputStream inputStream;
 		try {

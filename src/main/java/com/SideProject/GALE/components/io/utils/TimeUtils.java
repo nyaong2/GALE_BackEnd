@@ -66,6 +66,11 @@ public class TimeUtils {
 		SimpleDateFormat sdf = new SimpleDateFormat("[yyyy년MM월dd일 HH시mm분ss초] ");
 		return sdf.format(milliSeconds);
 	}
+	public static String CurrentTime_ProfileFileNameString(long milliSeconds)
+	{
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+		return sdf.format(milliSeconds);
+	}
 	
 	public static long GetCurrentMilliSeconds()
 	{

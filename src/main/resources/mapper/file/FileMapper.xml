@@ -7,21 +7,6 @@
 
 <mapper namespace="com.SideProject.GALE.mapper.file.FileMapper">
 		
-	<select id="Read" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardDto">
-		SELECT
-		writer, regdate, locationname, locationaddress, content, grade, service, price, congestion, accessibility
-		FROM board
-		WHERE idx = #{idx}
-	</select>
-	
-	<select id="Read_Review" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardReviewDto">
-		SELECT
-		board_category, board_idx, writer, regdate, content, grade, service, price, congestion, accessibility
-		FROM board
-		WHERE idx = #{idx}
-	</select>
-	
-	
 	<insert id="Upload_Board" parameterType="java.util.Map">
 		INSERT INTO file (board_number, origin_file_name, stored_file_name, order_number)
 		VALUES
@@ -44,7 +29,6 @@
 		WHERE
 		board_number = #{board_number}
 		AND order_number = #{order_number}
-		
 	</select>
 	
 	<select id="Download_Board_Review_ImageData" parameterType="com.SideProject.GALE.model.file.FileReviewDto" resultType="com.SideProject.GALE.model.file.FileReviewDto">
@@ -53,6 +37,30 @@
 		WHERE 
 		board_review_number = #{board_review_number}
 		AND order_number = #{order_number}
-	</select>	
-		
+	</select>
+	
+	
+	<insert id="Save_UserProfileImage" parameterType="com.SideProject.GALE.model.file.FileUserProfileDto">
+		INSERT INTO file_userprofile (userid, filename, stored_filename, regdate)
+		VALUES
+		(#{userid}, #{filename}, #{stored_filename}, #{regdate})
+		ON DUPLICATE KEY UPDATE
+		filename = VALUES(filename),
+		stored_filename = VALUES(stored_filename),
+		regdate = VALUES(regdate);
+	</insert>
+	
+	<select id="Read_UserProfile" parameterType="String" resultType="com.SideProject.GALE.model.file.FileUserProfileDto">
+		SELECT *
+		FROM file_userprofile
+		WHERE
+		userid = #{userId}
+	</select>
+	
+	<delete id="Delete_UserProfileImage" parameterType="String">
+		DELETE
+		FROM file_userprofile
+		WHERE userid = #{userid}
+	</delete>
+	
 </mapper>

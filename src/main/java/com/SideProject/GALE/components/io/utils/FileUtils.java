@@ -56,7 +56,7 @@ public class FileUtils {
 		return SHA;
 	}
 	
-	public boolean ForceFolderDelete(String fullPath)
+	public boolean ForceDeleteFolder(String fullPath)
 	{
 		try {
 			Path folderPath = Paths.get(fullPath);
@@ -70,6 +70,19 @@ public class FileUtils {
 				folder.delete();
 			}
 			
+		} catch (Exception ex) {
+			return false;
+		}
+		return true;
+	}
+	
+	public boolean DeleteFile(String fullFilePath)
+	{
+		try {
+			File file = new File(fullFilePath);
+			
+			if(file.exists())
+				file.delete();
 		} catch (Exception ex) {
 			return false;
 		}

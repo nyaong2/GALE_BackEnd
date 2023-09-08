@@ -32,7 +32,7 @@
 	        )
 	        AND (f.order_number IS NULL OR f.order_number = 1)
 	    ORDER BY b.view_count DESC
-	    LIMIT 0,6;
+	    LIMIT #{calculationCursor}, 6;
 	</select>
 	
 
@@ -108,7 +108,7 @@
 	    br.board_review_number, br.board_number, br.userid, 
 	    br.regdate, br.content, br.average,
 	    u.nickname AS userNickname,
-	    COALESCE (fp.stored_filename) AS userProfileimageUrl,
+	    COALESCE (fu.stored_filename) AS userProfileImageUrl,
 	    COALESCE (
 	    (
 	        SELECT GROUP_CONCAT(fr.stored_file_name ORDER BY fr.order_number ASC)
@@ -116,7 +116,7 @@
 	        WHERE fr.board_review_number = br.board_review_number
 	    )) AS imageArrayUrl
 	    FROM board_review br
-	    LEFT OUTER JOIN file_profile fp ON br.userid = fp.userid
+	    LEFT OUTER JOIN file_userprofile fu ON fu.userid = br.userid
 	    LEFT OUTER JOIN user u ON br.userid = u.userid
 	    WHERE br.board_number =  #{board_Number}
 	</select>
@@ -126,7 +126,7 @@
 	    	br.board_review_number, br.board_number, br.userid, 
 	    	br.regdate, br.content, br.average,
 	    	u.nickname AS userNickname,
-	    COALESCE (fp.stored_filename) AS userProfileimageUrl,
+	    COALESCE (fu.stored_filename) AS userProfileImageUrl,
 	    COALESCE (
 	    (
 	        SELECT GROUP_CONCAT(fr.stored_file_name ORDER BY fr.order_number ASC)
@@ -134,8 +134,8 @@
 	        WHERE fr.board_review_number = br.board_review_number
 	    )) AS imageArrayUrl
 	    FROM board_review br
-	    LEFT OUTER JOIN file_profile fp ON br.userid = fp.userid
-	    LEFT OUTER JOIN user u ON br.userid = u.userid
+	    LEFT OUTER JOIN file_userprofile fu ON fu.userid = br.userid
+	    LEFT OUTER JOIN user u ON u.userid =  br.userid
 	    WHERE br.board_number = #{board_Number}
 	    <choose>
 		    <when test="sortType == 'new'">
@@ -170,7 +170,7 @@
 		SELECT
 		    br.*,
 		    u.nickname AS userNickname,
-		    COALESCE(fp.stored_filename) AS userProfileimageUrl,
+		    COALESCE(fu.stored_filename) AS userProfileImageUrl,
 		    COALESCE(
 		    (
 		        SELECT GROUP_CONCAT(fr.stored_file_name ORDER BY fr.order_number ASC)
@@ -178,7 +178,7 @@
 		        WHERE fr.board_review_number = br.board_review_number
 		    )) AS imageArrayUrl
 		FROM board_review br
-		LEFT OUTER JOIN file_profile fp ON br.userid = fp.userid
+		LEFT OUTER JOIN file_userprofile fu ON fu.userid = br.userid
 		LEFT OUTER JOIN user u ON br.userid = u.userid
 		WHERE br.board_review_number = #{board_Review_Number}
 	</select>
@@ -201,4 +201,16 @@
 		(#{report_number}, #{reporter_userid}, #{board_review_number}, #{report_category}, #{content})
 	</insert>
 	
+	<insert id="AddUserWishPlace" parameterType="HashMap">
+		INSERT INTO board_wishplace
+		(userid, board_number)
+		VALUES
+		(#{userid}, #{board_Number})
+	</insert>
+	
+	<delete id="DelUserWishPlace" parameterType="HashMap">
+		DELETE
+		FROM board_wishplace
+		WHERE userid = #{userid} AND board_number = #{board_Number}
+	</delete>
 </mapper>

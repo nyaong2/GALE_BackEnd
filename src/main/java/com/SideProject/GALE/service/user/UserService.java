@@ -288,4 +288,6 @@ public class UserService {
 			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);			
 		}
 	}
+	
+	
 }

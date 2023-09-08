@@ -19,5 +19,4 @@ public class BoardReadDto extends BoardDto {
 	private int allAverage;
 	private int reviewCount;
 	private String imageArrayFileName;
-	private List<BoardReviewConciseReadDto> reviewList;
 }

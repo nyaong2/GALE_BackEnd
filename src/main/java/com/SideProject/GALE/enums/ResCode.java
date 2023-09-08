@@ -29,6 +29,9 @@ public  enum ResCode {
 	BAD_REQUEST_FILE_NOTALLOW_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 확장자 입니다."),
 	// [400 - Planner]
 	BAD_REQUEST_PLANNER_NOTFOUND_BOARD(HttpStatus.BAD_REQUEST, "계획에 추가한 게시물이 존재하지 않습니다."),
+	// [400 - Board]
+	BAD_REQUEST_BOARD_ALREADYPROCESSED_WISHPLACE(HttpStatus.BAD_REQUEST, "이미 처리가 됐거나 존재하지 않은 위시플레이스의 요청입니다."),
+	
 	
 	// 401
 	UNAUTHORIZED(HttpStatus.UNAUTHORIZED, ""),	
@@ -66,6 +69,7 @@ public  enum ResCode {
 	// [404 - FILE]
 	NOT_FOUND_FILE_BOARD(HttpStatus.NOT_FOUND, "이미지가 존재하지 않습니다."),
 	NOT_FOUND_FILE_BOARDREVIEW(HttpStatus.NOT_FOUND, "이미지가 존재하지 않습니다."),
+	NOT_FOUND_FILE_USERPROFILEIMAGE(HttpStatus.NOT_FOUND, "이미지가 존재하지 않습니다."),
 	
 	
 	// [404 - PLANNER]

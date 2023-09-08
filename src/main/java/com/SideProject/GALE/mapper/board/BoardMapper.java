@@ -42,7 +42,8 @@ public interface BoardMapper {
 	
 	int Report_Review(ReportReviewDto reportReviewDto);
 	
-	
+	int AddUserWishPlace(Map<String,Object> map);
+	int DelUserWishPlace(Map<String,Object> map);
 	
 	//Review--------------------------------------------------------
 }
