@@ -1,21 +1,13 @@
 package com.SideProject.GALE.components.response;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
-import com.SideProject.GALE.components.io.utils.CustomInputStreamResource;
 import com.SideProject.GALE.enums.ResCode;
 
 

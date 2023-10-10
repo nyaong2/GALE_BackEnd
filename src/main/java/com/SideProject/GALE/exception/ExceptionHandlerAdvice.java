@@ -1,13 +1,10 @@
 package com.SideProject.GALE.exception;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.SideProject.GALE.components.response.ResponseService;
-import com.SideProject.GALE.enums.ResCode;
 
 import lombok.RequiredArgsConstructor;
 

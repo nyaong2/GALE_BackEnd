@@ -2,6 +2,7 @@ package com.SideProject.GALE.model.planner;
 
 import java.sql.Date;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -13,7 +14,7 @@ import lombok.Setter;
 public class PlannerDto {
 	private int planner_number;
 	private String userid;
-	private String title;
+	private String destination_address;
 	
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
 	private Date date_start;
@@ -23,4 +24,8 @@ public class PlannerDto {
 	
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "Asia/Seoul")
 	private LocalDateTime regdate;
+	
+	private List<String> imageArrayUrl;
+	private String queryOnly_ImageArrayUrl;
+
 }

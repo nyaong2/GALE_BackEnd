@@ -21,5 +21,7 @@ public class BoardDto {
 	public String locationname;
 	public String locationaddress;
 	public BigDecimal longitude;
-	public BigDecimal latitue;
+	public BigDecimal latitude;
+	
+	private String queryOnly_ImageArrayUrl;
 }

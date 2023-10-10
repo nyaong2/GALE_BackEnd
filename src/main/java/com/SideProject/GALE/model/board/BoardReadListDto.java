@@ -1,5 +1,7 @@
 package com.SideProject.GALE.model.board;
 
+import java.util.List;
+
 import lombok.Getter;
 import lombok.Setter;
 

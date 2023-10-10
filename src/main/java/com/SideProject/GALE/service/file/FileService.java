@@ -7,11 +7,15 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.FilenameUtils;
+import org.json.JSONArray;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -77,26 +81,41 @@ public class FileService {
 	}
 	
 	
-	public String CreateArrayBoardImageFileString(int board_Number, String arrayImageFileName)
+	public String CreateSingleBoardImageFileString(int board_Number, String imageFileName)
+	{		
+		//하나도 추가되지 않았다면 null로 처리 ( 이유는 json으로 보낼 때 값이 없으면 키값 자체가 포함되어 보내지지 않음. 그러므로 null을 추가함.)
+		if(StringUtils.hasText(imageFileName) == false)
+			return "null";
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("http://")
+			.append(serverIp)
+			.append(":")
+			.append(serverPort)
+			.append("/file/download/")
+			.append(parentFolderName_Board)
+			.append("?board_Number=")
+			.append(board_Number)
+			.append("&fileName=")
+			.append(imageFileName);
+		return sb.toString();
+	}
+	
+	public List<String> CreateArrayBoardImageFileString(int board_Number, String arrayImageFileName)
 	{
+		List<String> resultData = new ArrayList<>();
+		
+		//하나도 추가되지 않았다면 null로 처리 ( 이유는 json으로 보낼 때 값이 없으면 키값 자체가 포함되어 보내지지 않음. 그러므로 null을 추가함.)
 		if(StringUtils.hasText(arrayImageFileName) == false)
-			return null;
-		
-		String[] taskImageFileNameString = arrayImageFileName.split(",");
-		
-		StringBuilder resultStr = new StringBuilder();
-		
-		for(int idx = 0; idx < taskImageFileNameString.length ; idx++)
 		{
-			
-			// 값이 String으로 null이라면 null값 추가해서 프론트에서 null값인 경우 작업하지 않도록 처리.
-			// (sql에 String으로 null 준 이유는 list에서 값이 없으면 key값이 추가가 안되는 경우가 있어서 String으로 null 반환처리함.)
-			if(taskImageFileNameString[idx].equals("null"))
-			{
-				resultStr.append("null");			
-				continue;
-			}
-			
+			resultData.add("null");
+			return resultData;
+		}
+		
+		String[] arrayFileName = arrayImageFileName.split(",");
+		
+		for(int idx = 0; idx < arrayFileName.length; idx++)
+		{
 			StringBuilder sb = new StringBuilder();
 			sb.append("http://")
 				.append(serverIp)
@@ -107,26 +126,28 @@ public class FileService {
 				.append("?board_Number=")
 				.append(board_Number)
 				.append("&fileName=")
-				.append(taskImageFileNameString[idx]);
-			taskImageFileNameString[idx] = sb.toString();
+				.append(arrayFileName[idx]);
 			
-			if(idx > 0)
-				resultStr.append(", ");
-			
-			resultStr.append(sb.toString());			
+			resultData.add(sb.toString());
 		}
-		
-		return resultStr.toString();
+
+		return resultData;
 	}
 	
-	public String CreateArrayBoardReviewImageFileString(int board_Review_Number, String arrayImageFileName)
+	public List<String> CreateArrayBoardReviewImageFileString(int board_Review_Number, String arrayImageFileName)
 	{
+		List<String> resultData = new ArrayList<>();
+		
+		//하나도 추가되지 않았다면 null로 처리 ( 이유는 json으로 보낼 때 값이 없으면 키값 자체가 포함되어 보내지지 않음. 그러므로 null을 추가함.)
 		if(StringUtils.hasText(arrayImageFileName) == false)
-			return null;
+		{
+			resultData.add("null");
+			return resultData;
+		}
 		
-		String[] taskImageFileNameString = arrayImageFileName.split(",");
+		String[] arrayFileName = arrayImageFileName.split(",");
 		
-		for(int idx = 0; idx < taskImageFileNameString.length ; idx++)
+		for(int idx = 0; idx < arrayFileName.length; idx++)
 		{
 			StringBuilder sb = new StringBuilder();
 			sb.append("http://")
@@ -140,11 +161,12 @@ public class FileService {
 				.append("?board_Review_Number=")
 				.append(board_Review_Number)
 				.append("&fileName=")
-				.append(taskImageFileNameString[idx]);
-			taskImageFileNameString[idx] = sb.toString();
+				.append(arrayFileName[idx]);
+
+			resultData.add(sb.toString());
 		}
 		
-		return Arrays.toString(taskImageFileNameString);
+		return resultData;
 	}
 	
 	

@@ -41,10 +41,10 @@
 			SELECT IFNULL( MAX(board_number)+1, 1 ) FROM board
 		</selectKey>
 		INSERT INTO board (board_category_number, board_number, userid, regdate, locationname, locationaddress,
-			longitude, latitue)
+			longitude, latitude)
 			VALUES (
 			#{board_category_number}, #{board_number}, #{userid}, #{regdate}, #{locationname}, #{locationaddress},
-			#{longitude}, #{latitue} )
+			#{longitude}, #{latitude} )
 	</insert>
 	
 	
@@ -64,7 +64,7 @@
 		    COALESCE(AVG(br.congestion), 0) AS congestion,
 		    COALESCE(AVG(br.accessibility), 0) AS accessibility,
 		    COUNT(br.board_number) AS reviewCount,
-		    (SELECT GROUP_CONCAT(f.stored_file_name) FROM file f WHERE f.board_number = b.board_number) AS imageArrayFileName
+		    (SELECT GROUP_CONCAT(f.stored_file_name) FROM file f WHERE f.board_number = b.board_number) AS queryOnly_ImageArrayUrl
 		FROM board b
 		LEFT OUTER JOIN board_review br ON br.board_number = b.board_number
 		WHERE b.board_number = #{board_Number}
@@ -74,7 +74,7 @@
 	<update id="Update" parameterType="com.SideProject.GALE.model.board.BoardDto">
 		UPDATE board
 		SET board_category_number = #{board_category_number}, locationname = #{locationname}, locationaddress = #{locationaddress},
-					longitude = #{longitude}, latitue = #{latitue}
+					longitude = #{longitude}, latitude = #{latitude}
 		WHERE board_number=#{board_number} AND userid=#{userid}
 	</update>
 	
@@ -114,7 +114,7 @@
 	        SELECT GROUP_CONCAT(fr.stored_file_name ORDER BY fr.order_number ASC)
 	        FROM file_review fr 
 	        WHERE fr.board_review_number = br.board_review_number
-	    )) AS imageArrayUrl
+	    )) AS queryOnly_ImageArrayUrl
 	    FROM board_review br
 	    LEFT OUTER JOIN file_userprofile fu ON fu.userid = br.userid
 	    LEFT OUTER JOIN user u ON br.userid = u.userid
@@ -132,7 +132,7 @@
 	        SELECT GROUP_CONCAT(fr.stored_file_name ORDER BY fr.order_number ASC)
 	        FROM file_review fr 
 	        WHERE fr.board_review_number = br.board_review_number
-	    )) AS imageArrayUrl
+	    )) AS queryOnly_ImageArrayUrl
 	    FROM board_review br
 	    LEFT OUTER JOIN file_userprofile fu ON fu.userid = br.userid
 	    LEFT OUTER JOIN user u ON u.userid =  br.userid
@@ -176,7 +176,7 @@
 		        SELECT GROUP_CONCAT(fr.stored_file_name ORDER BY fr.order_number ASC)
 		        FROM file_review fr 
 		        WHERE fr.board_review_number = br.board_review_number
-		    )) AS imageArrayUrl
+		    )) AS queryOnly_ImageArrayUrl
 		FROM board_review br
 		LEFT OUTER JOIN file_userprofile fu ON fu.userid = br.userid
 		LEFT OUTER JOIN user u ON br.userid = u.userid
@@ -200,17 +200,4 @@
 		VALUES
 		(#{report_number}, #{reporter_userid}, #{board_review_number}, #{report_category}, #{content})
 	</insert>
-	
-	<insert id="AddUserWishPlace" parameterType="HashMap">
-		INSERT INTO board_wishplace
-		(userid, board_number)
-		VALUES
-		(#{userid}, #{board_Number})
-	</insert>
-	
-	<delete id="DelUserWishPlace" parameterType="HashMap">
-		DELETE
-		FROM board_wishplace
-		WHERE userid = #{userid} AND board_number = #{board_Number}
-	</delete>
 </mapper>

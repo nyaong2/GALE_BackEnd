@@ -107,9 +107,11 @@ public class UserController {
 		// Request = 리프레시토큰 받고 검증 후 액세스토큰 다시 발급
 		String token =  userService.RegenerationAccessToken(request);
 
-		 return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject().put("accessToken",token));
+		return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject().put("accessToken",token));
 	}
 	
+	
+	// # - [프로필]
 	
 	@PatchMapping(value= "/profile")
 	@Transactional
@@ -117,8 +119,9 @@ public class UserController {
 	{
 		userService.ProfileUpdate(request, profileDto);
 
-		 return responseService.Create(null, ResCode.SUCCESS, "회원 정보가 정상적으로 수정되었습니다.");
+		return responseService.Create(null, ResCode.SUCCESS, "회원 정보가 정상적으로 수정되었습니다.");
 	}
+	
 	
 	@PostMapping(value= "/profile/image")
 	@Transactional
@@ -137,7 +140,7 @@ public class UserController {
 		
 		 return responseService.Create(null, ResCode.SUCCESS, "프로필 사진이 삭제됐습니다.");
 	}
-	
+
 }
 
 

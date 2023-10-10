@@ -11,5 +11,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class PlannerReadDetailsDto extends PlannerDetailDto{
 	private BigDecimal longitude;
-	private BigDecimal latitue;
+	private BigDecimal latitude;
+	private int allAverage;
 }

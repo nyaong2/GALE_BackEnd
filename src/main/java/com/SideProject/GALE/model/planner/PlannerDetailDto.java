@@ -1,6 +1,7 @@
 package com.SideProject.GALE.model.planner;
 
 import java.sql.Date;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -17,4 +18,7 @@ public class PlannerDetailDto {
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
 	private Date startdate;
 	private int order_number;
+	
+	private List<String> imageArrayUrl;
+	private String queryOnly_ImageArrayUrl;
 }

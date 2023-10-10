@@ -48,10 +48,7 @@ public class BoardService {
 				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_DATA);
 			
 			for(BoardReadListDto readDto : list) // 파일명을 가지고 이미지 주소 url로 변환
-			{
-				String convertFirstImageUrl = 	fileService.CreateArrayBoardImageFileString(readDto.getBoard_number(), readDto.getFirstImageUrl());
-				readDto.setFirstImageUrl( (StringUtils.hasText(convertFirstImageUrl)) ? convertFirstImageUrl : "null" );
-			}
+				readDto.setFirstImageUrl(fileService.CreateSingleBoardImageFileString(readDto.getBoard_number(), readDto.getFirstImageUrl()));
 			
 		} catch (CustomRuntimeException ex) {
 			throw ex;
@@ -96,9 +93,10 @@ public class BoardService {
 				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_DATA);
 
 			//파일 url 작업
-			String convertImageUrlAddress = fileService.CreateArrayBoardImageFileString(board_Number, queryBoardDto.getImageArrayFileName());
-			queryBoardDto.setImageArrayFileName(convertImageUrlAddress);
-						
+			queryBoardDto.setImageArrayUrl(fileService.CreateArrayBoardImageFileString(board_Number, queryBoardDto.getQueryOnly_ImageArrayUrl()));
+			queryBoardDto.setQueryOnly_ImageArrayUrl(null); // response 할 때 키값이 들어가지 않도록 설정. 위에서만 작업 후에 버리는 방향으로. mybatis에서 List<String>을 쓰기가 껄끄러워 이렇게 작업
+
+			
 			queryBoardDto.setAllAverage( //따로 Service에서 작업한 이유 : sql로 작업하면 한번더 값을 호출하기 때문에 속도 저하가 있을 것으로 보여서.
 				(
 						queryBoardDto.getSatisfaction()
@@ -210,11 +208,11 @@ public class BoardService {
 			
 			for(BoardReviewConciseReadDto conciseDto : reviewDto)
 			{
-				String convertImageUrlAddress_Review = fileService.CreateArrayBoardReviewImageFileString(conciseDto.getBoard_review_number(), conciseDto.getImageArrayUrl());
-				String convertProfileImageUrl = fileService.CreateUserProfileImageNameUrl(conciseDto.getUserProfileImageUrl());
-				conciseDto.setImageArrayUrl( (StringUtils.hasText(convertImageUrlAddress_Review)) ? convertImageUrlAddress_Review : "null" );
-				conciseDto.setUserProfileImageUrl( (StringUtils.hasText(convertProfileImageUrl)) ? convertProfileImageUrl : "null" );
+				conciseDto.setImageArrayUrl(fileService.CreateArrayBoardReviewImageFileString(conciseDto.getBoard_review_number(), conciseDto.getQueryOnly_ImageArrayUrl()));
+				conciseDto.setUserProfileImageUrl( fileService.CreateUserProfileImageNameUrl(conciseDto.getUserProfileImageUrl()));
+				conciseDto.setQueryOnly_ImageArrayUrl(null); // response 할 때 키값이 들어가지 않도록 설정. 위에서만 작업 후에 버리는 방향으로. mybatis에서 List<String>을 쓰기가 껄끄러워 이렇게 작업
 			}
+			
 			
 		} catch(CustomRuntimeException ex) {
 			throw ex;
@@ -233,11 +231,10 @@ public class BoardService {
 			if(queryBoardReviewDto == null)
 				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_REVIEW_DATA);
 			
-			String convertImageUrlAddress_Review = fileService.CreateArrayBoardReviewImageFileString(queryBoardReviewDto.getBoard_review_number(), queryBoardReviewDto.getImageArrayUrl());
 			String convertProfileImageUrl = fileService.CreateUserProfileImageNameUrl(queryBoardReviewDto.getUserProfileImageUrl());
-			queryBoardReviewDto.setImageArrayUrl( (StringUtils.hasText(convertImageUrlAddress_Review)) ? convertImageUrlAddress_Review : "null" );
+			queryBoardReviewDto.setImageArrayUrl( fileService.CreateArrayBoardReviewImageFileString(queryBoardReviewDto.getBoard_review_number(), queryBoardReviewDto.getQueryOnly_ImageArrayUrl()));
 			queryBoardReviewDto.setUserProfileImageUrl( (StringUtils.hasText(convertProfileImageUrl)) ? convertProfileImageUrl : "null" );
-
+			queryBoardReviewDto.setQueryOnly_ImageArrayUrl(null); // response 할 때 키값이 들어가지 않도록 설정. 위에서만 작업 후에 버리는 방향으로. mybatis에서 List<String>을 쓰기가 껄끄러워 이렇게 작업
 			
 		} catch (CustomRuntimeException ex) {
 			throw ex;
@@ -289,45 +286,5 @@ public class BoardService {
 	
 	
 	
-	// [부가기능] ---------------------------------------------------------------------------------
-	public void AddWishPlace(HttpServletRequest request, int board_Number)
-	{
-		String userid = jwtProvider.RequestTokenDataParser(request).get("userid").toString();
-		
-		try {
-			Map<String,Object> map = new HashMap<String,Object>();
-			map.put("userid", userid);
-			map.put("board_Number", board_Number);
 
-			if(boardMapper.AddUserWishPlace(map) != 1)
-				throw new Exception();
-		} catch (Exception ex) {
-			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
-		}
-	}
-	
-	
-	
-	public void DelWishPlace(HttpServletRequest request, int board_Number)
-	{
-		String userid = jwtProvider.RequestTokenDataParser(request).get("userid").toString();
-		
-		try {
-			Map<String,Object> map = new HashMap<String,Object>();
-			map.put("userid", userid);
-			map.put("board_Number", board_Number);
-
-			int result = boardMapper.DelUserWishPlace(map);
-			
-			if(result == 0)
-				throw new CustomRuntimeException(ResCode.BAD_REQUEST_BOARD_ALREADYPROCESSED_WISHPLACE);
-			else if (result != 1)
-				throw new Exception();
-			
-		} catch (CustomRuntimeException ex) {
-			throw ex;
-		} catch (Exception ex) {
-			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
-		}
-	}
 }

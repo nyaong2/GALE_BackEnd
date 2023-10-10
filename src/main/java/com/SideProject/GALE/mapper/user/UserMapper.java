@@ -3,7 +3,6 @@ import java.util.Optional;
 
 import org.apache.ibatis.annotations.Mapper;
 
-import com.SideProject.GALE.model.user.LoginDto;
 import com.SideProject.GALE.model.user.UserDto;
 import com.SideProject.GALE.model.user.UserProfileRequestDto;
 

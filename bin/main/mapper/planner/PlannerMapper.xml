@@ -7,23 +7,55 @@
 
 <mapper namespace="com.SideProject.GALE.mapper.planner.PlannerMapper">
 
-	<select id="GetAllPlannerList" parameterType="String" resultType="com.SideProject.GALE.model.planner.GetAllListPlannerDto">
-		SELECT p.*, pd.board_number,
-    	(br.satisfaction + br.service + br.price + br.congestion + br.accessibility) / 5 AS average
-		FROM planner p
-		LEFT JOIN planner_details pd ON pd.planner_number = p.planner_number
-		LEFT OUTER JOIN (
-    		SELECT board_number,
-        	AVG(satisfaction) AS satisfaction,
-        	AVG(service) AS service,
-        	AVG(price) AS price,
-       		AVG(congestion) AS congestion,
-        	AVG(accessibility) AS accessibility
-    	FROM board_review
-    	GROUP BY board_number
-		) br ON pd.board_number = br.board_number
-		WHERE p.userid = #{userid}
-		AND pd.order_number = 1;
+	<select id="AllList" parameterType="String" resultType="com.SideProject.GALE.model.planner.PlannerAllListDto">
+	    SELECT p.*, 
+	        pd.board_number AS first_Board_number,
+	        b.locationaddress,
+	        f.stored_file_name AS queryOnly_ImageArrayUrl,
+	        (br.satisfaction + br.service + br.price + br.congestion + br.accessibility) / 5 AS average
+	    FROM planner p
+	    LEFT OUTER JOIN planner_details pd ON pd.planner_number = p.planner_number
+	    LEFT OUTER JOIN board b ON b.board_number = pd.board_number
+	    LEFT OUTER JOIN file f ON f.board_number = pd.board_number
+	    LEFT OUTER JOIN (
+	        SELECT board_number,
+	            AVG(satisfaction) AS satisfaction,
+	            AVG(service) AS service,
+	            AVG(price) AS price,
+	            AVG(congestion) AS congestion,
+	            AVG(accessibility) AS accessibility
+	        FROM board_review
+	        GROUP BY board_number
+	    ) br ON br.board_number = pd.board_number
+	    WHERE p.userid = #{userid}
+	    AND pd.order_number = 1;
+	</select>
+	
+	
+	<!-- Read 하기 전 로그인 한 유저가 요청한 것인지 체크-->
+	<select id="GetUserId" parameterType="int" resultType="String">
+		Select userid
+		FROM planner
+		WHERE planner_number = #{planner_number}
+	</select>
+
+	
+	<select id="Read" parameterType="int" resultType="com.SideProject.GALE.model.planner.PlannerReadDetailsDto">
+	    SELECT 
+	        pd.planner_number, pd.board_number, pd.startdate, pd.order_number,
+	        b.longitude, b.latitude,
+	        f.stored_file_name AS queryOnly_ImageArrayUrl,
+	        br.allAverage
+	    FROM planner_details pd
+	    JOIN board b ON b.board_number = pd.board_number
+	    LEFT JOIN file f ON f.board_number = pd.board_number  -- Assuming file table has a board number field.
+	    LEFT OUTER JOIN (
+	        SELECT board_number,
+	            AVG(average) AS allAverage
+	        FROM board_review
+	        GROUP BY board_number
+	    ) br ON br.board_number = pd.board_number
+	    WHERE pd.planner_number = #{planner_number}
 	</select>
 	
 
@@ -32,13 +64,13 @@
 			SELECT IFNULL( MAX(planner_number)+1, 1 ) FROM planner
 		</selectKey>
 		INSERT INTO planner
-		(planner_number, userid, title, date_start, date_end, regdate)
+		(planner_number, userid, destination_address, date_start, date_end, regdate)
 		VALUES (
-		#{planner_number}, #{userid}, #{title}, #{date_start}, #{date_end}, #{regdate})
+		#{planner_number}, #{userid}, #{destination_address}, #{date_start}, #{date_end}, #{regdate})
 	</insert>
 	
 	
-	<insert id="Write_Details" parameterType="com.SideProject.GALE.model.planner.PlannerDetailDto">
+	<insert id="WriteDetails" parameterType="com.SideProject.GALE.model.planner.PlannerDetailDto">
 		INSERT INTO planner_details
 		(planner_number, board_number, startdate, order_number)
 		VALUES
@@ -47,23 +79,7 @@
 			#{item.startdate}, 1 + #{index} )
 		</foreach>
 	</insert>
-	
-	<select id="Read" parameterType="int" resultType="com.SideProject.GALE.model.planner.PlannerReadDetailsDto">
-		SELECT 
-		pd.planner_number, pd.board_number, pd.startdate, pd.order_number,
-		b.longitude, b.latitue
-		FROM planner_details pd
-		JOIN board b ON  b.board_number = pd.board_number
-		WHERE pd.planner_number = #{planner_number}
-	</select>
-	
-	<select id="GetUserId" parameterType="int" resultType="String">
-		Select userid
-		FROM planner
-		WHERE planner_number = #{planner_number}
-	</select>
-
-	
+		
 	<delete id="Delete" parameterType="int">
 		DELETE planner, planner_details
 		FROM planner

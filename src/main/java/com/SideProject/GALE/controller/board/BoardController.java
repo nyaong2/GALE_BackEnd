@@ -101,9 +101,9 @@ public class BoardController {
 	
 	/* [여행장소 글 읽어오기] */
 	@GetMapping("/board") 
-	public ResponseEntity<?> Read(@RequestParam int board_number)
+	public ResponseEntity<?> Read(@RequestParam int board_Number)
 	{
-		BoardReadDto readData = boardService.Read(board_number);
+		BoardReadDto readData = boardService.Read(board_Number);
 
 		return (readData != null) ? responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject(readData))
 											: responseService.Create(null, ResCode.NOT_FOUND_NULLDATA, null);	
@@ -124,10 +124,10 @@ public class BoardController {
 	
 	// D : 지우기
 	@DeleteMapping("/board/{board_number}") 
-	public ResponseEntity<?> Delete(HttpServletRequest request,@PathVariable int board_number) // 게시물 삭제하기
+	public ResponseEntity<?> Delete(HttpServletRequest request,@PathVariable int board_Number) // 게시물 삭제하기
 	{
 			
-		boardService.Delete(request, board_number);
+		boardService.Delete(request, board_Number);
 		
 		return responseService.Create( null,ResCode.SUCCESS, "게시물이 삭제되었습니다.");
 	}
@@ -197,8 +197,7 @@ public class BoardController {
 	
 	/* 리뷰 구체적으로 가져오기*/
 	@GetMapping("/board/review")
-	public ResponseEntity<?> Read_Review(HttpServletRequest request, 
-			@RequestParam int board_Review_Number)
+	public ResponseEntity<?> Read_Review(@RequestParam int board_Review_Number)
 	{
 		
 		BoardReviewDetailReadDto reviewReadDto = boardService.Read_Review(board_Review_Number);
@@ -232,23 +231,5 @@ public class BoardController {
 	
 	
 	
-	// [부가기능] ---------------------------------------------------------------------------------
-	@PostMapping("/board/wishplace")
-	public ResponseEntity<?> AddWishPlace(HttpServletRequest request, 
-			@RequestParam int board_Number)
-	{
-		boardService.AddWishPlace(request, board_Number);
-		
-		return responseService.Create(null, ResCode.SUCCESS, "위시플레이스가 정상적으로 등록됐습니다.");
-	}
-	
-	@DeleteMapping("/board/wishplace/{board_Number}")
-	public ResponseEntity<?> DelWishPlace(HttpServletRequest request, 
-			@PathVariable int board_Number)
-	{
-		boardService.DelWishPlace(request, board_Number);
-		
-		return responseService.Create(null, ResCode.SUCCESS, "위시플레이스가 정상적으로 제거됐습니다.");
-	}
-	
+
 }

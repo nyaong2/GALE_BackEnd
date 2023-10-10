@@ -1,6 +1,5 @@
 package com.SideProject.GALE.model.board;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import lombok.Getter;
@@ -18,5 +17,5 @@ public class BoardReadDto extends BoardDto {
 	private int accessibility;
 	private int allAverage;
 	private int reviewCount;
-	private String imageArrayFileName;
+	private List<String> imageArrayUrl;
 }

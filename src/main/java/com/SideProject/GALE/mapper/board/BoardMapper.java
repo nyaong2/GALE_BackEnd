@@ -18,7 +18,6 @@ public interface BoardMapper {
 	
 	List<BoardReadListDto> GetCategoryBoardDataList(Map<String,Integer> map);
 	
-	
 	//Board
 	Integer Write(BoardDto boardDto);
 	
@@ -41,9 +40,6 @@ public interface BoardMapper {
 	int Delete_Review(int board_Review_Number);
 	
 	int Report_Review(ReportReviewDto reportReviewDto);
-	
-	int AddUserWishPlace(Map<String,Object> map);
-	int DelUserWishPlace(Map<String,Object> map);
 	
 	//Review--------------------------------------------------------
 }

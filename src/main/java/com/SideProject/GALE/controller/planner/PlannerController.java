@@ -23,16 +23,18 @@ import org.springframework.web.bind.annotation.RestController;
 import com.SideProject.GALE.components.response.ResponseService;
 import com.SideProject.GALE.controller.user.UserController;
 import com.SideProject.GALE.enums.ResCode;
-import com.SideProject.GALE.model.planner.GetAllListPlannerDto;
+import com.SideProject.GALE.model.planner.PlannerAllListDto;
 import com.SideProject.GALE.model.planner.PlannerReadDetailsDto;
 import com.SideProject.GALE.model.planner.PlannerWriteRequestDto;
+import com.SideProject.GALE.service.file.FileService;
 import com.SideProject.GALE.service.planner.PlannerService;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(produces = "application/json")
+@RequestMapping(produces = "application/json") // 맨앞부분은 user로 매핑
+
 public class PlannerController {
 	private final PlannerService plannerService;
 	private final ResponseService responseService;
@@ -40,7 +42,6 @@ public class PlannerController {
 	
 	
 	
-	/* [플래너 작성] */
 	@PostMapping("/planner")
 	public ResponseEntity<?> Write(HttpServletRequest request, @RequestBody PlannerWriteRequestDto requestDto)
 	{
@@ -52,20 +53,18 @@ public class PlannerController {
 	
 	
 	
-	/* [모든 플래너 간략히 가져오기] */
-	@GetMapping("/planner/all") //마이페이지의 전체적인 플래너 목록
-	public ResponseEntity<?> GetAllPlannerList(HttpServletRequest request) 
+	/* [모든 플래너 가져오기] */
+	@GetMapping("/planner/list") //마이페이지의 전체적인 플래너 목록
+	public ResponseEntity<?> AllList(HttpServletRequest request) 
 	{
-		List<GetAllListPlannerDto> data = plannerService.GetAllPlannerList(request);
+		List<PlannerAllListDto> data = plannerService.AllList(request);
 		
-        HashMap<String, List<GetAllListPlannerDto>> responseData = new HashMap<>();
-        for(GetAllListPlannerDto obj : data)
-        	responseData.put("content", data);
+        HashMap<String, List<PlannerAllListDto>> responseData = new HashMap<>();
+        responseData.put("list", data);
         
         JSONObject resultObj = new JSONObject(responseData);
 		return responseService.CreateList(null, ResCode.SUCCESS, null, resultObj);
 	}
-	
 	
 	
 	/* [특정 플래너 클릭했을때 특정 플래너의 day별 리스트 정보] */
@@ -84,8 +83,6 @@ public class PlannerController {
 	}
 	
 	
-	
-	
 	@DeleteMapping("/planner/{planner_number}")
 	public ResponseEntity<?> Delete(HttpServletRequest request, @PathVariable int planner_number)
 	{
@@ -93,4 +90,6 @@ public class PlannerController {
 		
 		return responseService.Create(null, ResCode.SUCCESS, "여행 기획이 성공적으로 삭제되었습니다.");
 	}
+	
+
 }

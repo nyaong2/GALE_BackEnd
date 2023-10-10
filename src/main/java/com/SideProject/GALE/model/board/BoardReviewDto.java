@@ -16,4 +16,6 @@ public class BoardReviewDto {
 	private LocalDateTime regdate;
 	private String content;
 	private int average;
+	
+	private String queryOnly_ImageArrayUrl;
 }
