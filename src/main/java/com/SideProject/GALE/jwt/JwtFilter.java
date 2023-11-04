@@ -29,11 +29,13 @@ public class JwtFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException 
 	{
-		response.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:3000"); //요청 보내는 페이지 도메인 지정
 		response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000"); //요청 보내는 페이지 도메인 지정
+		//response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000"); //요청 보내는 페이지 도메인 지정
+		//response.setHeader("Access-Control-Allow-Origin", "http://192.168.0.182:3000"); //요청 보내는 페이지 도메인 지정
+		
 	    response.setHeader("Access-Control-Allow-Credentials", "true"); // Request의 Credential 방식이 사용되게 할 것인지 지정. (Request는 true로 요청이 왔는데 Response가 false면, Response는 클라이언트측에서 무시당함)
 
-	    response.setHeader("Access-Control-Allow-Methods","GET, HEAD, POST, PUT, DELETE, OPTIONS"); // 메소드 설정
+	    response.setHeader("Access-Control-Allow-Methods","GET, HEAD, POST, PATCH, PUT, DELETE, OPTIONS"); // 메소드 설정
 	    response.setHeader("Access-Control-Max-Age", "3600"); // 해당 시간동안은 Prelight 요청 보내지 않음. (브라우저에서 캐싱하고 있는 시간)
 	    response.setHeader("Access-Control-Allow-Headers","content-type,*"); // 헤더 설정
 		

@@ -195,6 +195,11 @@ public class BoardService {
 	{
 		List<BoardReviewConciseReadDto> reviewDto;
 		try {
+			int boardReviewCount = boardMapper.GetBoardReviewCount(board_Number);
+			
+			if(boardReviewCount < 1)
+				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_REVIEW_DATA);
+			
 			Map<String,Object> map = new HashMap<String,Object>();
 			map.put("board_Number", board_Number);
 			map.put("sortType", sortType);
@@ -202,9 +207,8 @@ public class BoardService {
 			int calculationCursor= review_CurrentPage * 5; // 프론트에는 1,2,3,4,5,6,7대로 순서대로가고 그것에 맞게 현재페이지 cursor 값을 설정해서 sql로 넘김. 5개씩 리뷰가 보이도록 했으니 *5로 했음.
 			map.put("calculationCursor", calculationCursor);
 
-			reviewDto = boardMapper.Read_BoardReviewPagingList(map);			
-			if(reviewDto.size() < 1)
-				throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_REVIEW_DATA);
+			reviewDto = boardMapper.Read_BoardReviewPagingList(map);
+			reviewDto.get(0).setResponseOnly_reviewCount(boardReviewCount);
 			
 			for(BoardReviewConciseReadDto conciseDto : reviewDto)
 			{
@@ -273,8 +277,12 @@ public class BoardService {
 	
 	public void Report_Review(HttpServletRequest request, ReportReviewDto reportReviewDto)
 	{
-		if (reportReviewDto.getReporter_userid().equals(jwtProvider.RequestTokenDataParser(request).get("userid")) == false)
+		String userid = jwtProvider.RequestTokenDataParser(request).get("userid").toString();
+		
+		if(StringUtils.hasText(userid) == false)
 			throw new CustomRuntimeException(ResCode.BAD_REQUEST_NOTEQUALS_DATA);
+		
+		reportReviewDto.setReporter_userid(userid);
 		try 
 		{
 			if ( boardMapper.Report_Review(reportReviewDto) != 1)

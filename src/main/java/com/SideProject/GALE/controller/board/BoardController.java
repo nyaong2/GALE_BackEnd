@@ -188,8 +188,9 @@ public class BoardController {
 			)
 	{
 		List<BoardReviewConciseReadDto> reviewListDto = boardService.Read_BoardReviewPagingList(board_Number, sortType, orderType, currentPage);
-		HashMap<String, List<BoardReviewConciseReadDto>> convertResponseListData = new HashMap<>();
+		HashMap<String, Object> convertResponseListData = new HashMap<>();
     	convertResponseListData.put("list", reviewListDto);
+    	convertResponseListData.put("reviewCount", reviewListDto.get(0).getResponseOnly_reviewCount());
     	
 		return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject(convertResponseListData));
 	}

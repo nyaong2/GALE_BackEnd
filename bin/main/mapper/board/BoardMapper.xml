@@ -165,6 +165,12 @@
 		WHERE board_review_number = #{board_Review_Number}
 	</select>
 	
+	<select id="GetBoardReviewCount" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM board_review
+		WHERE board_number = #{board_Number}
+	</select>
+	
 	
 	<select id="Read_Review" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardReviewDetailReadDto">
 		SELECT

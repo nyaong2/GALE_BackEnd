@@ -26,6 +26,14 @@
 		ORDER BY NAME
  	</select>
  	
+ 	<select id="getProfileInformation" parameterType="String" resultType="com.SideProject.GALE.model.user.UserProfileInformationDto">
+		SELECT u.nickname, f.stored_filename AS profileImageUrl
+		FROM user AS u
+		LEFT JOIN file_userprofile AS f
+		ON u.userid = f.userid
+		WHERE u.userid = #{userid}
+	</select>
+ 	
 	<update id="ProfileUpdate" parameterType="com.SideProject.GALE.model.user.UserProfileRequestDto">
 		UPDATE user
 		SET nickname = #{nickname}, password = #{encryptedPassword}

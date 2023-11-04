@@ -4,6 +4,7 @@ import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
 
 import com.SideProject.GALE.model.user.UserDto;
+import com.SideProject.GALE.model.user.UserProfileInformationDto;
 import com.SideProject.GALE.model.user.UserProfileRequestDto;
 
 
@@ -14,5 +15,6 @@ public interface UserMapper {
 	Integer findNickname(String nickname);
 	String getUserAuthority(String email);
 	
+	UserProfileInformationDto getProfileInformation(String userid);
 	int ProfileUpdate(UserProfileRequestDto userProfileRequestDto);
 }

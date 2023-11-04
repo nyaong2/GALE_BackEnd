@@ -35,6 +35,7 @@ public interface BoardMapper {
 	List<BoardReviewConciseReadDto> Read_BoardReviewPagingList(Map<String,Object> map);
 	List<BoardReviewConciseReadDto> Read_BoardReivewConciseList(int board_Number);
 	String GetBoardReviewUserid(int board_Review_Number);
+	int GetBoardReviewCount(int board_Number); // 프론트 요청
 	BoardReviewDetailReadDto Read_Review(int board_Review_number);
 
 	int Delete_Review(int board_Review_Number);

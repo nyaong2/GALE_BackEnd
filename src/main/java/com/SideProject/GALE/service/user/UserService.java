@@ -25,8 +25,10 @@ import com.SideProject.GALE.jwt.JwtProvider;
 import com.SideProject.GALE.mapper.user.UserMapper;
 import com.SideProject.GALE.model.user.LoginDto;
 import com.SideProject.GALE.model.user.SignupDto;
+import com.SideProject.GALE.model.user.UserProfileInformationDto;
 import com.SideProject.GALE.model.user.UserProfileRequestDto;
 import com.SideProject.GALE.redis.RedisService;
+import com.SideProject.GALE.service.file.FileService;
 
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,7 @@ public class UserService {
 	private final AuthenticationManagerBuilder authManagerBuilder;
 	private final JwtProvider jwtProvider;
 	private final RedisService redisService;
+	private final FileService fileService;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -220,7 +223,7 @@ public class UserService {
 		
 		try {
 			saveDbToken = redisService.Get(parseToken.get("userid").toString());
-			
+
 			if(StringUtils.hasText(saveDbToken) == false)
 				throw new CustomRuntimeException(ResCode.NOT_FOUND_USER_LOGINTOKEN);
 			if(saveDbToken.equals(requestToken) == false)
@@ -247,6 +250,26 @@ public class UserService {
 		return accessToken;
 	}
 	
+	
+	public UserProfileInformationDto ProfileInformation(HttpServletRequest request)
+	{
+		String userid = jwtProvider.RequestTokenDataParser(request).get("userid").toString();
+		
+		UserProfileInformationDto userInformationDto;
+		
+		try {
+			userInformationDto = userMapper.getProfileInformation(userid);
+			
+			if(userInformationDto == null)
+				throw new Exception();
+			
+			userInformationDto.setProfileImageUrl(fileService.CreateUserProfileImageNameUrl(userInformationDto.getProfileImageUrl()));
+		} catch (Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);			
+		}
+		
+		return userInformationDto;
+	}
 	
 	
 	@Transactional(propagation = Propagation.NESTED)
@@ -287,6 +310,7 @@ public class UserService {
 		} catch (Exception ex) {
 			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);			
 		}
+
 	}
 	
 	

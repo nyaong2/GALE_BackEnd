@@ -24,6 +24,7 @@ import com.SideProject.GALE.components.response.ResponseService;
 import com.SideProject.GALE.enums.ResCode;
 import com.SideProject.GALE.model.user.LoginDto;
 import com.SideProject.GALE.model.user.SignupDto;
+import com.SideProject.GALE.model.user.UserProfileInformationDto;
 import com.SideProject.GALE.model.user.UserProfileRequestDto;
 import com.SideProject.GALE.service.file.FileService;
 import com.SideProject.GALE.service.user.UserService;
@@ -49,6 +50,7 @@ public class UserController {
 	public ResponseEntity<?> Login(@RequestBody LoginDto loginDto) {
 
 		Map<String,Object> token = userService.Login(loginDto);
+
 		JSONObject tokenData = new JSONObject(token);
 		return responseService.CreateList(null,ResCode.SUCCESS, null,tokenData);
 	}
@@ -112,6 +114,15 @@ public class UserController {
 	
 	
 	// # - [프로필]
+	
+	@GetMapping(value= "/profile")
+	@Transactional
+	public ResponseEntity<?> GetProfileInformation(HttpServletRequest request)
+	{
+		UserProfileInformationDto userInformation = userService.ProfileInformation(request);
+		JSONObject data = new JSONObject(userInformation);
+		return responseService.CreateList(null, ResCode.SUCCESS, null, data);
+	}
 	
 	@PatchMapping(value= "/profile")
 	@Transactional
