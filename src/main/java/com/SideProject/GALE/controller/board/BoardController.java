@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ import com.SideProject.GALE.exception.CustomRuntimeException_Msg;
 import com.SideProject.GALE.model.board.BoardDto;
 import com.SideProject.GALE.model.board.BoardReadDto;
 import com.SideProject.GALE.model.board.BoardReadListDto;
+import com.SideProject.GALE.model.board.BoardRegionDto;
 import com.SideProject.GALE.model.board.BoardReviewConciseReadDto;
 import com.SideProject.GALE.model.board.BoardReviewDetailDto;
 import com.SideProject.GALE.model.board.BoardReviewDetailReadDto;
@@ -62,6 +64,15 @@ public class BoardController {
 		
 		return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONObject(convertResponseListData));
 	}
+	
+	@GetMapping("/board/region")
+	public ResponseEntity<?> GetRegionList(@RequestParam int region_Number)
+	{
+		List<BoardRegionDto> queryRisingBoardList = boardService.GetRegionList(region_Number);
+		
+		return responseService.CreateList(null, ResCode.SUCCESS, null, new JSONArray(queryRisingBoardList));
+	}
+		
 	
 	
 	/* [여행장소 글쓰기] */

@@ -65,6 +65,7 @@ public  enum ResCode {
 	// [404 - BOARD]
 	NOT_FOUND_BOARD_DATA(HttpStatus.NOT_FOUND, "게시물이 존재하지 않은 요청입니다."),
 	NOT_FOUND_BOARD_REVIEW_DATA(HttpStatus.NOT_FOUND, "리뷰가 존재하지 않은 요청입니다."),
+	NOT_FOUND_BOARD_REGION_DATA(HttpStatus.NOT_FOUND, "게시물이 존재하지 않은 지역입니다."),
 
 	// [404 - FILE]
 	NOT_FOUND_FILE_BOARD(HttpStatus.NOT_FOUND, "이미지가 존재하지 않습니다."),

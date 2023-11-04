@@ -19,6 +19,7 @@ import com.SideProject.GALE.mapper.board.BoardMapper;
 import com.SideProject.GALE.model.board.BoardDto;
 import com.SideProject.GALE.model.board.BoardReadDto;
 import com.SideProject.GALE.model.board.BoardReadListDto;
+import com.SideProject.GALE.model.board.BoardRegionDto;
 import com.SideProject.GALE.model.board.BoardReviewConciseReadDto;
 import com.SideProject.GALE.model.board.BoardReviewDetailDto;
 import com.SideProject.GALE.model.board.BoardReviewDetailReadDto;
@@ -56,6 +57,25 @@ public class BoardService {
 			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);
 		}
 
+		return list;
+	}
+	
+	public List<BoardRegionDto> GetRegionList(int region_Number)
+	{
+		List<BoardRegionDto> list = null;
+		
+		try {
+			list = boardMapper.GetRegionBoardDataList(region_Number);
+		} catch(Exception ex) {
+			throw new CustomRuntimeException(ResCode.INTERNAL_SERVER_ERROR);			
+		}
+
+		if(list.size() <= 0)
+			throw new CustomRuntimeException(ResCode.NOT_FOUND_BOARD_REGION_DATA);
+		
+		for(BoardRegionDto dto : list)
+			dto.setFirstImageUrl(fileService.CreateSingleBoardImageFileString(dto.getBoard_number(), dto.getFirstImageUrl()));
+		
 		return list;
 	}
 

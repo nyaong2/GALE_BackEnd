@@ -35,6 +35,23 @@
 	    LIMIT #{calculationCursor}, 6;
 	</select>
 	
+	<select id="GetRegionBoardDataList" parameterType="int" resultType="com.SideProject.GALE.model.board.BoardRegionDto">
+		SELECT
+		    b.board_number,
+		    b.locationname,
+		    b.locationaddress,
+		    b.longitude,
+		    b.latitude,
+		    COALESCE(f.stored_file_name) as firstImageUrl,
+		    (SELECT AVG(average) FROM board_review WHERE board_number = b.board_number) as allAverage
+		FROM board b
+		LEFT OUTER JOIN file f ON f.board_number = b.board_number
+		WHERE
+		    region_number = #{region_number}
+		AND (f.order_number IS NULL OR f.order_number = 1)
+	</select>
+	
+	
 
 	<insert id="Write" parameterType="com.SideProject.GALE.model.board.BoardDto"  useGeneratedKeys="true" keyProperty="board_number">
  		<selectKey resultType="Integer" keyProperty="board_number" order="BEFORE">

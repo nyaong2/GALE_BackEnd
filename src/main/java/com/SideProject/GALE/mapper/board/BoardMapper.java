@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 import com.SideProject.GALE.model.board.BoardDto;
 import com.SideProject.GALE.model.board.BoardReadDto;
 import com.SideProject.GALE.model.board.BoardReadListDto;
+import com.SideProject.GALE.model.board.BoardRegionDto;
 import com.SideProject.GALE.model.board.BoardReviewConciseReadDto;
 import com.SideProject.GALE.model.board.BoardReviewDetailReadDto;
 import com.SideProject.GALE.model.board.BoardReviewDto;
@@ -17,6 +18,8 @@ import com.SideProject.GALE.model.board.ReportReviewDto;
 public interface BoardMapper {
 	
 	List<BoardReadListDto> GetCategoryBoardDataList(Map<String,Integer> map);
+	List<BoardRegionDto> GetRegionBoardDataList(int region_number);
+	
 	
 	//Board
 	Integer Write(BoardDto boardDto);

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,5 +24,6 @@ public class BoardDto {
 	public BigDecimal longitude;
 	public BigDecimal latitude;
 	
+	@JsonIgnore
 	private String queryOnly_ImageArrayUrl;
 }
